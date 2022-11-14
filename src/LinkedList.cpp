@@ -70,11 +70,3 @@ bool LinkedList::contains(Entry* entry) {
 }
 
 Node::~Node() { delete entry; }
-
-int main() {
-    LinkedList* ll = new LinkedList();
-    Entry* e = new Entry(4, "string");
-    ll->insert(e);
-    ll->print();
-    delete ll;
-}
