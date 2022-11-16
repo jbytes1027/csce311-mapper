@@ -12,14 +12,12 @@ void executeFile(string path) {
         cout << "Error opening file";
     }
 
+    Map* map;
+
     string line;
     while (getline(file, line)) {
-        // cout << line << " --- ";
-        char action = line.at(0);
-
         int keyStart = 2;
         int keyEnd = keyStart;
-
         for (int i = keyStart; i <= line.length(); i++) {
             keyEnd = i;
             if (i != line.length() && line.at(i) == ' ') {
@@ -30,8 +28,7 @@ void executeFile(string path) {
         string keyString = line.substr(keyStart, keyLen);
         int key = stoi(keyString);
 
-        Map* map;
-
+        char action = line.at(0);
         if (action == 'N') {
             // Set thread number
             map = new Map(key);
@@ -60,30 +57,31 @@ void executeFile(string path) {
             int valueLen = valueEnd - valueStart;
             string value = line.substr(valueStart, valueLen);
 
-            map->insert(key, value);
-
-            bool success = map->remove(key);
+            bool success = map->insert(key, value);
 
             if (success) {
-                cout << "[Success] inserted " << key << " at " << value << "\n";
+                cout << "[Success] inserted " << value << " at " << key << "\n";
             } else {
                 cout << "[Error] failed to insert " << key << " at " << value
                      << "\n";
             }
-
-            // cout << " " << valueStart << " " << valueEnd << " " << valueLen
-            //      << " " << value;
         }
 
-        // cout << '\n';
+        map->printBuckets();
     }
+
+    delete map;
 }
 
 int main(int argc, char** argv) {
-    Map* m = new Map();
-    m->insert(1, "3a");
-    m->printBuckets();
-    delete m;
+    // Map* m = new Map();
+    // m->insert(1, "3a");
+    // m->insert(11, "3b");
+    // m->lookup(1);
+    // m->printBuckets();
+    // m->remove(1);
+    // m->lookup(1);
+    // delete m;
 
     if (argc > 1) {
         executeFile(argv[1]);
