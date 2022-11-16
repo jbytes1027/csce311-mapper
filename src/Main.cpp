@@ -18,7 +18,7 @@ void executeFile(string path) {
     while (getline(file, line)) {
         int keyStart = 2;
         int keyEnd = keyStart;
-        for (int i = keyStart; i <= line.length(); i++) {
+        for (long unsigned int i = keyStart; i <= line.length(); i++) {
             keyEnd = i;
             if (i != line.length() && line.at(i) == ' ') {
                 break;
