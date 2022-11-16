@@ -1,53 +1,113 @@
-#include "LinkedList.h"
+using namespace std;
 
-class Map {
-  private:
-    const int SIZE = 1024;
-    int bucketCount;
-    LinkedList** buckets;
-    int hash(int);
-    int hash(Entry*);
+#include "Map.h"
 
-  public:
-    Map();
-    ~Map();
-    bool insert(Entry*);
-    bool remove(Entry*);
-    bool search(Entry*);
-};
+#include <iostream>
+#include <string>
 
-Map::Map() {
+Node::Node(int key, string value) {
+    this->key = key;
+    this->value = value;
+    next = nullptr;
+}
+
+Map::Map(int threads) {
+    this->threads = threads;
     bucketCount = SIZE / 10;
-    buckets = new LinkedList*[bucketCount];
+    buckets = new Node*[bucketCount];
+}
+
+Map::~Map() {
+    for (int i = 0; i < bucketCount; i++) {
+        while (buckets[i] != nullptr) {
+            remove(buckets[i]->key);
+        }
+    }
+
+    delete buckets;
 }
 
 int Map::hash(int value) { return value % bucketCount; }
-int Map::hash(Entry* entry) { return hash(entry->key); }
 
-bool Map::insert(Entry* entry) {
-    int hashValue = hash(entry);
+bool Map::keyInBucket(int key, Node* head) {
+    for (Node* node = head; node != nullptr; node = node->next) {
+        if (node->key == key) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    if (buckets[hashValue]->contains(entry)) {
+bool Map::insert(int key, string value) {
+    int hashValue = hash(key);
+    Node* head = buckets[hashValue];
+
+    if (keyInBucket(key, head)) {
         return false;
     }
 
-    buckets[hashValue]->insert(entry);
-    return true;
-}
+    Node* newNode = new Node(key, value);
 
-bool Map::search(Entry* entry) {
-    int hashValue = hash(entry);
-
-    return buckets[hashValue]->contains(entry);
-}
-
-bool Map::remove(Entry* entry) {
-    int hashValue = hash(entry);
-
-    if (!buckets[hashValue]->contains(entry)) {
-        return false;
+    if (head == nullptr) {
+        buckets[hashValue] = newNode;
+        return true;
     }
 
-    buckets[hashValue]->remove(entry);
+    newNode->next = head;
+    buckets[hashValue] = newNode;
     return true;
+}
+
+string Map::lookup(int key) {
+    int hashValue = hash(key);
+
+    Node* head = buckets[hashValue];
+
+    for (Node* node = head; node != nullptr; node = node->next) {
+        if (node->key == key) {
+            return node->value;
+        }
+    }
+
+    return "";
+}
+
+void Map::printBuckets() {
+    for (int i = 0; i < bucketCount; i++) {
+        cout << i << ": ";
+        printBucket(buckets[i]);
+    }
+}
+
+void Map::printBucket(Node* head) {
+    for (Node* node = head; node != nullptr; node = node->next) {
+        cout << "(" << node->key << ", " << node->value << ") -> ";
+    }
+    cout << "\n";
+}
+
+bool Map::remove(int key) {
+    int hashValue = hash(key);
+    Node* head = buckets[hashValue];
+
+    Node* prevNode = nullptr;
+    Node* currNode = head;
+    while (currNode != nullptr) {
+        if (currNode->key == key) {
+            // update pointers around node
+            if (prevNode != nullptr) {
+                prevNode->next = currNode->next;
+            } else {  // removing head
+                buckets[hashValue] = currNode->next;
+            }
+
+            delete currNode;
+            return true;
+        } else {
+            prevNode = currNode;
+            currNode = currNode->next;
+        }
+    }
+
+    return false;
 }
