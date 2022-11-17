@@ -11,14 +11,14 @@ Node::Node(int key, string value) {
     next = nullptr;
 }
 
-Map::Map(int threads) {
+Map::Map(int threads, int numBuckets) {
     this->threads = threads;
-    bucketCount = SIZE / 10;
-    buckets = new Node*[bucketCount];
+    this->numBuckets = numBuckets;
+    buckets = new Node*[numBuckets];
 }
 
 Map::~Map() {
-    for (int i = 0; i < bucketCount; i++) {
+    for (int i = 0; i < numBuckets; i++) {
         while (buckets[i] != nullptr) {
             remove(buckets[i]->key);
         }
@@ -27,7 +27,7 @@ Map::~Map() {
     delete buckets;
 }
 
-int Map::hash(int value) { return value % bucketCount; }
+int Map::hash(int value) { return value % numBuckets; }
 
 bool Map::keyInBucket(int key, Node* head) {
     for (Node* node = head; node != nullptr; node = node->next) {
@@ -73,7 +73,7 @@ string Map::lookup(int key) {
 }
 
 void Map::printBuckets() {
-    for (int i = 0; i < bucketCount; i++) {
+    for (int i = 0; i < numBuckets; i++) {
         cout << i << ": ";
         printBucket(buckets[i]);
     }

@@ -12,15 +12,14 @@ class Node {
 
 class Map {
   private:
-    const int SIZE = 100;
     int threads;
-    int bucketCount;
+    int numBuckets;
     Node** buckets;
     int hash(int);
     bool keyInBucket(int, Node*);
 
   public:
-    Map(int threads = 1);
+    Map(int threads = 1, int numBuckets = 10);
     ~Map();
     bool insert(int, string);
     bool remove(int);
