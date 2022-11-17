@@ -15,6 +15,11 @@ Map::Map(int threads, int numBuckets) {
     this->threads = threads;
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
+
+    // init buckets to null
+    for (int i = 0; i < numBuckets; i++) {
+        buckets[i] = nullptr;
+    }
 }
 
 Map::~Map() {
