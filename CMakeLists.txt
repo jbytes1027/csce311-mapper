@@ -9,7 +9,7 @@ Project(Mapper LANGUAGES CXX)
 
 enable_testing()
 add_subdirectory(lib/googletest-release-1.11.0)
-add_executable(mapper-test src/MapTest.cpp)
+add_executable(mapper-test src/MapTest.cpp src/Map.h src/Map.cpp)
 target_link_libraries(mapper-test gtest gtest_main)
 include(GoogleTest)
 gtest_discover_tests(mapper-test)
