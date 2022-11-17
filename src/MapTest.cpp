@@ -44,3 +44,23 @@ TEST_F(SingleThreadedTest, Remove) {
     EXPECT_TRUE(map->remove(0));  // test remove head
     EXPECT_EQ(map->lookup(0), "");
 }
+
+TEST_F(SingleThreadedTest, Lookup) {
+    EXPECT_TRUE(map->insert(0, "a"));    // ins to empty bucket
+    EXPECT_TRUE(map->insert(10, "b"));   // ins to non-empty bucket
+    EXPECT_TRUE(map->insert(100, "c"));  // ins to non-empty bucket
+    // bucket0: c -> b -> a
+
+    map->printBuckets();
+
+    // lookup inserted
+    EXPECT_EQ(map->lookup(0), "a");    // lookup tail
+    EXPECT_EQ(map->lookup(10), "b");   // lookup middle
+    EXPECT_EQ(map->lookup(100), "c");  // lookup head
+
+    EXPECT_EQ(map->lookup(0), "a");  // lookup existing
+    EXPECT_EQ(map->lookup(1000),
+              "");  // lookup non-existing in bucket with existing
+
+    EXPECT_EQ(map->lookup(1), "");  // lookup non-existing in null bucket
+}
