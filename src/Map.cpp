@@ -27,8 +27,7 @@ Node::Node(int key, string value) {
     next = nullptr;
 }
 
-Map::Map(int threads, int numBuckets) {
-    this->threads = threads;
+Map::Map(int numBuckets) {
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
     locks = new pthread_mutex_t[numBuckets];

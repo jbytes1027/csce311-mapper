@@ -7,7 +7,7 @@ using namespace std;
 class SingleThreadedTest : public ::testing ::Test {
   protected:
     Map* map;
-    void SetUp() override { map = new Map(1, 10); };
+    void SetUp() override { map = new Map(10); };
     void TearDown() override { delete map; }
 };
 

@@ -14,7 +14,6 @@ class Node {
 
 class Map {
   private:
-    int threads;
     int numBuckets;
     Node** buckets;
     pthread_mutex_t* locks;
@@ -24,7 +23,7 @@ class Map {
     void unlock(int bucket);
 
   public:
-    Map(int threads = 1, int numBuckets = 10);
+    Map(int numBuckets = 10);
     ~Map();
     bool insert(int, string);
     bool remove(int);
