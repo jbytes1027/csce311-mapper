@@ -2,8 +2,24 @@ using namespace std;
 
 #include "Map.h"
 
+#include <pthread.h>
+
 #include <iostream>
 #include <string>
+
+void Map::lock(int bucket) {
+    int res = -1;
+    while (res != 0) {
+        res = pthread_mutex_lock(&locks[bucket]);
+    }
+}
+
+void Map::unlock(int bucket) {
+    int res = -1;
+    while (res != 0) {
+        res = pthread_mutex_unlock(&locks[bucket]);
+    }
+}
 
 Node::Node(int key, string value) {
     this->key = key;
@@ -15,10 +31,16 @@ Map::Map(int threads, int numBuckets) {
     this->threads = threads;
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
+    locks = new pthread_mutex_t[numBuckets];
 
     // init buckets to null
     for (int i = 0; i < numBuckets; i++) {
         buckets[i] = nullptr;
+
+        int res = -1;
+        while (res != 0) {
+            res = pthread_mutex_init(&locks[i], nullptr);
+        }
     }
 }
 
@@ -27,6 +49,7 @@ Map::~Map() {
         while (buckets[i] != nullptr) {
             remove(buckets[i]->key);
         }
+        pthread_mutex_destroy(&locks[i]);
     }
 
     delete buckets;
@@ -45,9 +68,13 @@ bool Map::keyInBucket(int key, Node* head) {
 
 bool Map::insert(int key, string value) {
     int hashValue = hash(key);
+
+    lock(hashValue);
+
     Node* head = buckets[hashValue];
 
     if (keyInBucket(key, head)) {
+        unlock(hashValue);
         return false;
     }
 
@@ -55,25 +82,30 @@ bool Map::insert(int key, string value) {
 
     if (head == nullptr) {
         buckets[hashValue] = newNode;
+        unlock(hashValue);
         return true;
     }
 
     newNode->next = head;
     buckets[hashValue] = newNode;
+    unlock(hashValue);
     return true;
 }
 
 string Map::lookup(int key) {
     int hashValue = hash(key);
 
+    lock(hashValue);
     Node* head = buckets[hashValue];
 
     for (Node* node = head; node != nullptr; node = node->next) {
         if (node->key == key) {
+            unlock(hashValue);
             return node->value;
         }
     }
 
+    unlock(hashValue);
     return "";
 }
 
@@ -93,6 +125,7 @@ void Map::printBucket(Node* head) {
 
 bool Map::remove(int key) {
     int hashValue = hash(key);
+    lock(hashValue);
     Node* head = buckets[hashValue];
 
     Node* prevNode = nullptr;
@@ -107,6 +140,7 @@ bool Map::remove(int key) {
             }
 
             delete currNode;
+            unlock(hashValue);
             return true;
         } else {
             prevNode = currNode;
@@ -114,5 +148,6 @@ bool Map::remove(int key) {
         }
     }
 
+    unlock(hashValue);
     return false;
 }

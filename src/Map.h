@@ -1,5 +1,7 @@
 using namespace std;
 
+#include <pthread.h>
+
 #include <string>
 
 class Node {
@@ -15,8 +17,11 @@ class Map {
     int threads;
     int numBuckets;
     Node** buckets;
+    pthread_mutex_t* locks;
     int hash(int);
     bool keyInBucket(int, Node*);
+    void lock(int bucket);
+    void unlock(int bucket);
 
   public:
     Map(int threads = 1, int numBuckets = 10);
