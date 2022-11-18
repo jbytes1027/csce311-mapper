@@ -1,7 +1,9 @@
 using namespace std;
+#include <chrono>  //for sleeping
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <thread>  //for sleeping
 
 #include "Map.h"
 
@@ -73,17 +75,10 @@ void executeFile(string path) {
     delete map;
 }
 
-int main(int argc, char** argv) {
-    // Map* m = new Map();
-    // m->insert(1, "3a");
-    // m->insert(11, "3b");
-    // m->lookup(1);
-    // m->printBuckets();
-    // m->remove(1);
-    // m->lookup(1);
-    // delete m;
+void sleep(int ms) { this_thread::sleep_for(chrono::milliseconds(ms)); }
 
-    if (argc > 1) {
-        executeFile(argv[1]);
-    }
+int main(int argc, char** argv) {
+    // if (argc > 1) {
+    //     executeFile(argv[1]);
+    // }
 }
