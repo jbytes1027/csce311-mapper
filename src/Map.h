@@ -1,6 +1,7 @@
 using namespace std;
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include <string>
 
@@ -16,7 +17,7 @@ class Map {
   private:
     int numBuckets;
     Node** buckets;
-    pthread_mutex_t* locks;
+    sem_t* sems;
     int hash(int);
     bool keyInBucket(int, Node*);
     void lock(int bucket);

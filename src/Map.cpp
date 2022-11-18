@@ -3,23 +3,14 @@ using namespace std;
 #include "Map.h"
 
 #include <pthread.h>
+#include <semaphore.h>
 
 #include <iostream>
 #include <string>
 
-void Map::lock(int bucket) {
-    int res = -1;
-    while (res != 0) {
-        res = pthread_mutex_lock(&locks[bucket]);
-    }
-}
+void Map::lock(int bucket) { sem_wait(&sems[bucket]); }
 
-void Map::unlock(int bucket) {
-    int res = -1;
-    while (res != 0) {
-        res = pthread_mutex_unlock(&locks[bucket]);
-    }
-}
+void Map::unlock(int bucket) { sem_post(&sems[bucket]); }
 
 Node::Node(int key, string value) {
     this->key = key;
@@ -30,7 +21,7 @@ Node::Node(int key, string value) {
 Map::Map(int numBuckets) {
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
-    locks = new pthread_mutex_t[numBuckets];
+    sems = new sem_t[numBuckets];
 
     // init buckets to null
     for (int i = 0; i < numBuckets; i++) {
@@ -38,7 +29,7 @@ Map::Map(int numBuckets) {
 
         int res = -1;
         while (res != 0) {
-            res = pthread_mutex_init(&locks[i], nullptr);
+            res = sem_init(&sems[i], 0, 1);
         }
     }
 }
@@ -48,10 +39,11 @@ Map::~Map() {
         while (buckets[i] != nullptr) {
             remove(buckets[i]->key);
         }
-        pthread_mutex_destroy(&locks[i]);
+        sem_destroy(&sems[i]);
     }
 
     delete buckets;
+    delete sems;
 }
 
 int Map::hash(int value) { return value % numBuckets; }
