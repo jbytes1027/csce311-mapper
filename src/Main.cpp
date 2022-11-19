@@ -101,7 +101,6 @@ void executeFile(string path) {
 
     getline(file, line);
     numThreads = stoi(line.substr(2, line.length() - 2));
-    numThreads = 1;
     cout << "Using " << numThreads << " threads\n";
 
     sem_init(&semThreads, 0, numThreads);
