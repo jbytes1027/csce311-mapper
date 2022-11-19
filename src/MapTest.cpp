@@ -4,14 +4,14 @@ using namespace std;
 #include "Map.h"
 #include "gtest/gtest.h"
 
-class SingleThreadedTest : public ::testing ::Test {
+class ThreadlessTest : public ::testing ::Test {
   protected:
     Map* map;
     void SetUp() override { map = new Map(10); };
     void TearDown() override { delete map; }
 };
 
-TEST_F(SingleThreadedTest, Insert) {
+TEST_F(ThreadlessTest, Insert) {
     EXPECT_TRUE(map->insert(0, "a"));    // test ins to empty bucket
     EXPECT_TRUE(map->insert(10, "b"));   // test ins to non-empty bucket
     EXPECT_FALSE(map->insert(10, "c"));  // test ins duplicate
@@ -20,7 +20,7 @@ TEST_F(SingleThreadedTest, Insert) {
     EXPECT_EQ(map->lookup(10), "b");
 }
 
-TEST_F(SingleThreadedTest, Remove) {
+TEST_F(ThreadlessTest, Remove) {
     EXPECT_TRUE(map->insert(0, "a"));    // ins to empty bucket
     EXPECT_TRUE(map->insert(10, "b"));   // ins to non-empty bucket
     EXPECT_TRUE(map->insert(100, "c"));  // ins to non-empty bucket
@@ -44,7 +44,7 @@ TEST_F(SingleThreadedTest, Remove) {
     EXPECT_EQ(map->lookup(0), "");
 }
 
-TEST_F(SingleThreadedTest, Lookup) {
+TEST_F(ThreadlessTest, Lookup) {
     EXPECT_TRUE(map->insert(0, "a"));    // ins to empty bucket
     EXPECT_TRUE(map->insert(10, "b"));   // ins to non-empty bucket
     EXPECT_TRUE(map->insert(100, "c"));  // ins to non-empty bucket
