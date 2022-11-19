@@ -59,13 +59,9 @@ bool Map::keyInBucket(int key, Node* head) {
 
 bool Map::insert(int key, string value) {
     int hashValue = hash(key);
-
-    lock(hashValue);
-
     Node* head = buckets[hashValue];
 
     if (keyInBucket(key, head)) {
-        unlock(hashValue);
         return false;
     }
 
@@ -73,31 +69,43 @@ bool Map::insert(int key, string value) {
 
     if (head == nullptr) {
         buckets[hashValue] = newNode;
-        unlock(hashValue);
         return true;
     }
 
     newNode->next = head;
     buckets[hashValue] = newNode;
-    unlock(hashValue);
     return true;
+}
+
+bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    sem_post(semOppStarted);
+    bool result = insert(key, value);
+    unlock(hashValue);
+    return result;
 }
 
 string Map::lookup(int key) {
     int hashValue = hash(key);
-
-    lock(hashValue);
     Node* head = buckets[hashValue];
 
     for (Node* node = head; node != nullptr; node = node->next) {
         if (node->key == key) {
-            unlock(hashValue);
             return node->value;
         }
     }
 
-    unlock(hashValue);
     return "";
+}
+
+string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    sem_post(semOppStarted);
+    string result = lookup(key);
+    unlock(hashValue);
+    return result;
 }
 
 void Map::printBuckets() {
@@ -116,7 +124,6 @@ void Map::printBucket(Node* head) {
 
 bool Map::remove(int key) {
     int hashValue = hash(key);
-    lock(hashValue);
     Node* head = buckets[hashValue];
 
     Node* prevNode = nullptr;
@@ -131,7 +138,6 @@ bool Map::remove(int key) {
             }
 
             delete currNode;
-            unlock(hashValue);
             return true;
         } else {
             prevNode = currNode;
@@ -139,6 +145,14 @@ bool Map::remove(int key) {
         }
     }
 
-    unlock(hashValue);
     return false;
+}
+
+bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    sem_post(semOppStarted);
+    bool result = remove(key);
+    unlock(hashValue);
+    return result;
 }
