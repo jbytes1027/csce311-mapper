@@ -75,7 +75,6 @@ void* chompLineThread(void* arg) {
     long unsigned int threadOutIndex = outIndex + 1;
     string line = *((string*)arg);
     string output = executeLineOpp(line);
-    // TODO wait till i=print index - cant spin; will block everything else
     while (true) {
         sem_wait(&semLockOut);
         if (threadOutIndex == outIndex) {
