@@ -12,10 +12,12 @@ using namespace std;
 
 int numThreads = 1;
 Map* map;
-sem_t semThreads;
+sem_t semThreadsWaiting;
 sem_t semSignalOppStarted;
 sem_t semSignalOut;
 sem_t semLockOut;
+sem_t semOutputLineAvailable;
+string currInputLine;
 long unsigned int outIndex = 0;
 long unsigned int flushOutThreadTurn = 0;
 stringstream outputBuffer;
@@ -85,22 +87,29 @@ string executeLineOpp(string line) {
     return out.str();
 }
 
-void* chompLineThread(void* arg) {
-    long unsigned int threadOutIndex = outIndex;
-    string line = *((string*)arg);
-    string output = executeLineOpp(line);
+void* consumeLineThread(void* arg) {
     while (true) {
-        wait(&semLockOut);
-        if (threadOutIndex == flushOutThreadTurn) {
-            outputBuffer << output;
-            flushOutThreadTurn++;
-            post(&semThreads);
+        wait(&semOutputLineAvailable);  // wait for line to be produced
+        // get line and index
+        long unsigned int threadOutIndex = outIndex;
+        string lineToExecute = currInputLine;
+
+        string output = executeLineOpp(currInputLine);
+
+        // wait until turn to output
+        while (true) {
+            wait(&semLockOut);
+            if (threadOutIndex == flushOutThreadTurn) {
+                outputBuffer << output;
+                flushOutThreadTurn++;
+                post(&semThreadsWaiting);
+                post(&semLockOut);
+                break;
+            }
+            post(&semSignalOut);
             post(&semLockOut);
-            return 0;
+            wait(&semSignalOut);
         }
-        post(&semSignalOut);
-        post(&semLockOut);
-        wait(&semSignalOut);
     }
 }
 
@@ -113,18 +122,17 @@ void write(stringstream* stream, string pathOutput) {
 
 void executeFile(string pathInput, string pathOutput) {
     ifstream fileInput(pathInput, ifstream::in);
-    string line;
 
     if (!fileInput.is_open()) {
         cout << "Error opening file\n";
         return;
     }
 
-    getline(fileInput, line);
-    numThreads = stoi(line.substr(2, line.length() - 2));
+    getline(fileInput, currInputLine);
+    numThreads = stoi(currInputLine.substr(2, currInputLine.length() - 2));
     outputBuffer << "Using " << numThreads << " threads\n";
 
-    sem_init(&semThreads, 0, numThreads);
+    sem_init(&semThreadsWaiting, 0, numThreads);
     sem_init(&semSignalOppStarted, 0, 0);
     sem_init(&semSignalOut, 0, 0);
     sem_init(&semLockOut, 0, 1);
@@ -132,11 +140,23 @@ void executeFile(string pathInput, string pathOutput) {
 
     auto begin = chrono::high_resolution_clock::now();
 
-    while (getline(fileInput, line)) {
-        wait(&semThreads);
+    for (int i = 0; i < numThreads; i++) {
         pthread_t thread;
-        pthread_create(&thread, nullptr, chompLineThread, &line);
-        wait(&semSignalOppStarted);  // wait until map opperation has started
+        int status =
+            pthread_create(&thread, nullptr, consumeLineThread, nullptr);
+        if (status != 0) {
+            cout << "Error starting thread\n";
+            return;
+        }
+    }
+
+    // produce lines
+    while (getline(fileInput, currInputLine)) {
+        wait(&semThreadsWaiting);
+        post(&semOutputLineAvailable);  // wake thread
+        wait(&semSignalOppStarted);  // wait until map opperation has started to
+                                     // ensure order and allow thread to get
+                                     // line and index
         outIndex++;
         post(&semSignalOut);
     }
