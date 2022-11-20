@@ -8,10 +8,6 @@ using namespace std;
 #include <iostream>
 #include <string>
 
-void Map::lock(int bucket) { sem_wait(&sems[bucket]); }
-
-void Map::unlock(int bucket) { sem_post(&sems[bucket]); }
-
 Node::Node(int key, string value) {
     this->key = key;
     this->value = value;
@@ -77,15 +73,6 @@ bool Map::insert(int key, string value) {
     return true;
 }
 
-bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
-    int hashValue = hash(key);
-    lock(hashValue);
-    sem_post(semOppStarted);
-    bool result = insert(key, value);
-    unlock(hashValue);
-    return result;
-}
-
 string Map::lookup(int key) {
     int hashValue = hash(key);
     Node* head = buckets[hashValue];
@@ -97,29 +84,6 @@ string Map::lookup(int key) {
     }
 
     return "";
-}
-
-string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
-    int hashValue = hash(key);
-    lock(hashValue);
-    sem_post(semOppStarted);
-    string result = lookup(key);
-    unlock(hashValue);
-    return result;
-}
-
-void Map::printBuckets() {
-    for (int i = 0; i < numBuckets; i++) {
-        cout << i << ": ";
-        printBucket(buckets[i]);
-    }
-}
-
-void Map::printBucket(Node* head) {
-    for (Node* node = head; node != nullptr; node = node->next) {
-        cout << "(" << node->key << ", " << node->value << ") -> ";
-    }
-    cout << "\n";
 }
 
 bool Map::remove(int key) {
@@ -148,11 +112,53 @@ bool Map::remove(int key) {
     return false;
 }
 
+void Map::lock(int bucket) { sem_wait(&sems[bucket]); }
+
+void Map::unlock(int bucket) { sem_post(&sems[bucket]); }
+
+void Map::signal(sem_t* semSignal) {
+    while (sem_post(semSignal) == -1) {
+        cout << "Error posting sem\n";
+    }
+}
+
+bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    signal(semOppStarted);
+    bool result = insert(key, value);
+    unlock(hashValue);
+    return result;
+}
+
+string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    signal(semOppStarted);
+    string result = lookup(key);
+    unlock(hashValue);
+    return result;
+}
+
 bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
-    sem_post(semOppStarted);
+    signal(semOppStarted);
     bool result = remove(key);
     unlock(hashValue);
     return result;
+}
+
+void Map::printBuckets() {
+    for (int i = 0; i < numBuckets; i++) {
+        cout << i << ": ";
+        printBucket(buckets[i]);
+    }
+}
+
+void Map::printBucket(Node* head) {
+    for (Node* node = head; node != nullptr; node = node->next) {
+        cout << "(" << node->key << ", " << node->value << ") -> ";
+    }
+    cout << "\n";
 }
