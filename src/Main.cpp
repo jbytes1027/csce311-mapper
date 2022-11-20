@@ -20,6 +20,18 @@ long unsigned int outIndex = 0;
 long unsigned int flushOutThreadTurn = 0;
 stringstream outputBuffer;
 
+void post(sem_t* sem) {
+    while (sem_post(sem) == -1) {
+        cout << "Error posting sem\n";
+    }
+}
+
+void wait(sem_t* sem) {
+    while (sem_wait(sem) == -1) {
+        cout << "Error waiting sem\n";
+    }
+}
+
 string executeLineOpp(string line) {
     stringstream out;
 
@@ -78,18 +90,25 @@ void* chompLineThread(void* arg) {
     string line = *((string*)arg);
     string output = executeLineOpp(line);
     while (true) {
-        sem_wait(&semLockOut);
+        wait(&semLockOut);
         if (threadOutIndex == flushOutThreadTurn) {
             outputBuffer << output;
             flushOutThreadTurn++;
-            sem_post(&semThreads);
-            sem_post(&semLockOut);
+            post(&semThreads);
+            post(&semLockOut);
             return 0;
         }
-        sem_post(&semSignalOut);
-        sem_post(&semLockOut);
-        sem_wait(&semSignalOut);
+        post(&semSignalOut);
+        post(&semLockOut);
+        wait(&semSignalOut);
     }
+}
+
+void write(stringstream* stream, string pathOutput) {
+    ofstream fileOutput(pathOutput, ifstream::out);
+    fileOutput << stream->rdbuf();
+    fileOutput.flush();
+    fileOutput.close();
 }
 
 void executeFile(string pathInput, string pathOutput) {
@@ -111,28 +130,23 @@ void executeFile(string pathInput, string pathOutput) {
     sem_init(&semLockOut, 0, 1);
     map = new Map();
 
-    auto begin = std::chrono::high_resolution_clock::now();
+    auto begin = chrono::high_resolution_clock::now();
 
     while (getline(fileInput, line)) {
-        sem_wait(&semThreads);
+        wait(&semThreads);
         pthread_t thread;
         pthread_create(&thread, nullptr, chompLineThread, &line);
-        sem_wait(
-            &semSignalOppStarted);  // wait until map opperation has started
+        wait(&semSignalOppStarted);  // wait until map opperation has started
         outIndex++;
-        sem_post(&semSignalOut);
+        post(&semSignalOut);
     }
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end -
-                                                                      begin)
-                     .count()
-              << "ns" << std::endl;
+    auto end = chrono::high_resolution_clock::now();
+    cout << chrono::duration_cast<chrono::nanoseconds>(end - begin).count()
+         << "ns" << std::endl;
+
     cout << "Writing output to disk\n";
-    ofstream fileOutput(pathOutput, ifstream::out);
-    fileOutput << outputBuffer.rdbuf();
-    fileOutput.flush();
-    fileOutput.close();
+    write(&outputBuffer, pathOutput);
     delete map;
 }
 
