@@ -17,6 +17,7 @@ sem_t semSignalOppStarted;
 sem_t semSignalOut;
 sem_t semLockOut;
 long unsigned int outIndex = 0;
+stringstream outputBuffer;
 
 string executeLineOpp(string line) {
     stringstream out;
@@ -85,23 +86,23 @@ void* chompLineThread(void* arg) {
         sem_post(&semLockOut);
         sem_wait(&semSignalOut);
     }
-    cout << output;
+    outputBuffer << output;
     sem_post(&semThreads);
     return 0;
 }
 
-void executeFile(string path) {
-    ifstream file(path, ifstream::in);
+void executeFile(string pathInput, string pathOutput) {
+    ifstream fileInput(pathInput, ifstream::in);
     string line;
 
-    if (!file.is_open()) {
+    if (!fileInput.is_open()) {
         cout << "Error opening file\n";
         return;
     }
 
-    getline(file, line);
+    getline(fileInput, line);
     numThreads = stoi(line.substr(2, line.length() - 2));
-    cout << "Using " << numThreads << " threads\n";
+    outputBuffer << "Using " << numThreads << " threads\n";
 
     sem_init(&semThreads, 0, numThreads);
     sem_init(&semSignalOppStarted, 0, 0);
@@ -109,7 +110,7 @@ void executeFile(string path) {
     sem_init(&semLockOut, 0, 1);
     map = new Map();
 
-    while (getline(file, line)) {
+    while (getline(fileInput, line)) {
         sem_wait(&semThreads);
         pthread_t thread;
         pthread_create(&thread, nullptr, chompLineThread, &line);
@@ -118,14 +119,17 @@ void executeFile(string path) {
         sem_post(&semSignalOut);
     }
 
+    ofstream fileOutput(pathOutput, ifstream::out);
+    fileOutput << outputBuffer.rdbuf();
+    fileOutput.close();
     delete map;
 }
 
 void sleep(int ms) { this_thread::sleep_for(chrono::milliseconds(ms)); }
 
 int main(int argc, char** argv) {
-    if (argc > 1) {
-        executeFile(argv[1]);
+    if (argc == 3) {
+        executeFile(argv[1], argv[2]);
     } else {
         cout << "Missing filename\nUsage: mapper [INPUT FILE...] [OUTPUT "
                 "FILE...]\n";
