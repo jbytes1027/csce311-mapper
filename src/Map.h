@@ -22,6 +22,7 @@ class Map {
     bool keyInBucket(int, Node*);
     void lock(int bucket);
     void unlock(int bucket);
+    void signal(sem_t*);
 
   public:
     Map(int numBuckets = 100);
