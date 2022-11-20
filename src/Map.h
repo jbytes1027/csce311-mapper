@@ -24,7 +24,7 @@ class Map {
     void unlock(int bucket);
 
   public:
-    Map(int numBuckets = 10);
+    Map(int numBuckets = 100);
     ~Map();
     bool insert(int, string);
     bool concurrentInsertAndPost(int, string, sem_t*);
