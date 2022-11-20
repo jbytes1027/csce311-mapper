@@ -17,6 +17,7 @@ sem_t semSignalOppStarted;
 sem_t semSignalOut;
 sem_t semLockOut;
 long unsigned int outIndex = 0;
+long unsigned int flushOutThreadTurn = 0;
 stringstream outputBuffer;
 
 string executeLineOpp(string line) {
@@ -73,22 +74,22 @@ string executeLineOpp(string line) {
 }
 
 void* chompLineThread(void* arg) {
-    long unsigned int threadOutIndex = outIndex + 1;
+    long unsigned int threadOutIndex = outIndex;
     string line = *((string*)arg);
     string output = executeLineOpp(line);
     while (true) {
         sem_wait(&semLockOut);
-        if (threadOutIndex == outIndex) {
+        if (threadOutIndex == flushOutThreadTurn) {
+            outputBuffer << output;
+            flushOutThreadTurn++;
+            sem_post(&semThreads);
             sem_post(&semLockOut);
-            break;
+            return 0;
         }
         sem_post(&semSignalOut);
         sem_post(&semLockOut);
         sem_wait(&semSignalOut);
     }
-    outputBuffer << output;
-    sem_post(&semThreads);
-    return 0;
 }
 
 void executeFile(string pathInput, string pathOutput) {
@@ -110,17 +111,27 @@ void executeFile(string pathInput, string pathOutput) {
     sem_init(&semLockOut, 0, 1);
     map = new Map();
 
+    auto begin = std::chrono::high_resolution_clock::now();
+
     while (getline(fileInput, line)) {
         sem_wait(&semThreads);
         pthread_t thread;
         pthread_create(&thread, nullptr, chompLineThread, &line);
-        sem_wait(&semSignalOppStarted);
+        sem_wait(
+            &semSignalOppStarted);  // wait until map opperation has started
         outIndex++;
         sem_post(&semSignalOut);
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end -
+                                                                      begin)
+                     .count()
+              << "ns" << std::endl;
+    cout << "Writing output to disk\n";
     ofstream fileOutput(pathOutput, ifstream::out);
     fileOutput << outputBuffer.rdbuf();
+    fileOutput.flush();
     fileOutput.close();
     delete map;
 }
