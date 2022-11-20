@@ -9,7 +9,7 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${command:cmake.launchTargetPath}",
-      "args": ["build/input.txt"],
+      "args": ["build/input.txt", "build/output.txt"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
       "environment": [
