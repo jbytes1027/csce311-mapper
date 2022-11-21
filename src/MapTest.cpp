@@ -1,7 +1,7 @@
 using namespace std;
 #include <string>
 
-#include "Map.h"
+#include "Mapper.h"
 #include "gtest/gtest.h"
 
 class ThreadlessTest : public ::testing ::Test {
@@ -59,4 +59,28 @@ TEST_F(ThreadlessTest, Lookup) {
               "");  // lookup non-existing in bucket with non-empty bucket
 
     EXPECT_EQ(map->lookup(1), "");  // lookup non-existing in null bucket
+}
+
+class ThreadedTest : public ::testing ::Test {
+  protected:
+    Map* map;
+    void SetUp() override { map = new Map(100); };
+    void TearDown() override { delete map; }
+};
+
+TEST_F(ThreadedTest, StressTest) {
+    stringstream inputFileBuffer;
+    inputFileBuffer << "N 10\n";
+
+    int numOpp = 10000 / 3;
+    for (int i = 0; i < numOpp; i++) {
+        inputFileBuffer << "I 1 \"asdf\"\n";
+        inputFileBuffer << "L 1\n";
+        inputFileBuffer << "D 1\n";
+    }
+
+    string inputFilePath = "StressTestInput.txt";
+    write(&inputFileBuffer, inputFilePath);
+
+    inputFileBuffer << "\n";
 }
