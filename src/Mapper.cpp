@@ -77,11 +77,11 @@ string executeLineOppAndSignal(string line, Map* map,
 
 struct mapper_shared_state_t {
     Map* map;
-    sem_t* semOutputLineAvailable;
-    sem_t* semLockOut;
-    sem_t* semSignalOut;
-    sem_t* semThreadsWaiting;
-    sem_t* semSignalOppStarted;
+    sem_t semOutputLineAvailable;
+    sem_t semLockOut;
+    sem_t semSignalOut;
+    sem_t semThreadsWaiting;
+    sem_t semSignalOppStarted;
     string currInputLine;
     long unsigned int outTurnIndex;
     long unsigned int flushOutThreadTurn;
@@ -92,26 +92,26 @@ void* consumeLineThread(void* uncastArgs) {
     mapper_shared_state_t* args = (mapper_shared_state_t*)uncastArgs;
 
     while (true) {
-        wait(args->semOutputLineAvailable);  // wait for line to be produced
+        wait(&args->semOutputLineAvailable);  // wait for line to be produced
         // store snapshot of curr line and index
         long unsigned int threadOutIndex = args->outTurnIndex;
 
         string output = executeLineOppAndSignal(args->currInputLine, args->map,
-                                                args->semSignalOppStarted);
+                                                &args->semSignalOppStarted);
 
         // wait until turn to output
         while (true) {
-            wait(args->semLockOut);
+            wait(&args->semLockOut);
             if (threadOutIndex == args->flushOutThreadTurn) {
                 *(args->outputBuffer) << output;
                 args->flushOutThreadTurn++;
-                post(args->semThreadsWaiting);
-                post(args->semLockOut);
+                post(&args->semThreadsWaiting);
+                post(&args->semLockOut);
                 break;
             }
-            post(args->semSignalOut);
-            post(args->semLockOut);
-            wait(args->semSignalOut);
+            post(&args->semSignalOut);
+            post(&args->semLockOut);
+            wait(&args->semSignalOut);
         }
     }
 }
@@ -129,16 +129,6 @@ stringstream executeStream(stringstream* streamInput) {
     mapper_shared_state_t state;
     stringstream outputBuffer;
     state.outputBuffer = &outputBuffer;
-    sem_t semThreadsWaiting;
-    state.semThreadsWaiting = &semThreadsWaiting;
-    sem_t semSignalOppStarted;
-    state.semSignalOppStarted = &semSignalOppStarted;
-    sem_t semSignalOut;
-    state.semSignalOut = &semSignalOut;
-    sem_t semLockOut;
-    state.semLockOut = &semLockOut;
-    sem_t semOutputLineAvailable;
-    state.semOutputLineAvailable = &semOutputLineAvailable;
 
     auto begin = chrono::high_resolution_clock::now();
 
@@ -147,11 +137,11 @@ stringstream executeStream(stringstream* streamInput) {
         stoi(state.currInputLine.substr(2, state.currInputLine.length() - 2));
     *state.outputBuffer << "Using " << numThreads << " threads\n";
 
-    sem_init(&semThreadsWaiting, 0, numThreads);
-    sem_init(&semSignalOppStarted, 0, 0);
-    sem_init(&semSignalOut, 0, 0);
-    sem_init(&semLockOut, 0, 1);
-    sem_init(&semOutputLineAvailable, 0, 0);
+    sem_init(&state.semThreadsWaiting, 0, numThreads);
+    sem_init(&state.semSignalOppStarted, 0, 0);
+    sem_init(&state.semSignalOut, 0, 0);
+    sem_init(&state.semLockOut, 0, 1);
+    sem_init(&state.semOutputLineAvailable, 0, 0);
     state.map = new Map();
     state.outTurnIndex = 0;
     state.flushOutThreadTurn = 0;
@@ -168,13 +158,13 @@ stringstream executeStream(stringstream* streamInput) {
 
     // produce lines
     while (getline(*streamInput, state.currInputLine)) {
-        wait(&semThreadsWaiting);
-        post(&semOutputLineAvailable);  // wake thread
-        wait(&semSignalOppStarted);     // wait until map opperation has
-                                        // started to ensure order and allow
-                                        // thread to get line and index
+        wait(&state.semThreadsWaiting);
+        post(&state.semOutputLineAvailable);  // wake thread
+        wait(&state.semSignalOppStarted);     // wait until map opperation has
+                                           // started to ensure order and allow
+                                           // thread to get line and index
         state.outTurnIndex++;
-        post(&semSignalOut);
+        post(&state.semSignalOut);
     }
 
     auto end = chrono::high_resolution_clock::now();
