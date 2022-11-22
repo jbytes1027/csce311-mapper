@@ -124,7 +124,7 @@ TEST(ThreadedTest, PerformanceScaling) {
     int numOpp = 100000;
     for (int i = 0; i < numOpp; i++) {
         int opp = randGen() % 3;
-        int key = randGen() % 10;
+        int key = randGen() % 30;
 
         if (opp == 0) {
             inputStream1C << "I " << key << " \"asdf\"\n";
