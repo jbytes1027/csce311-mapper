@@ -158,8 +158,6 @@ stringstream executeStream(stringstream* streamInput) {
     stringstream outputBuffer;
     state.outputBuffer = &outputBuffer;
 
-    // auto begin = chrono::high_resolution_clock::now();
-
     getline(*streamInput, state.currInputLine);
     numConsumers =
         stoi(state.currInputLine.substr(2, state.currInputLine.length() - 2));
@@ -222,11 +220,6 @@ stringstream executeStream(stringstream* streamInput) {
         sem_getvalue(&state.semConsumersDone, &consumersDone);
         this_thread::sleep_for(chrono::milliseconds(5));
     } while (consumersDone < numConsumers);
-
-    // auto end = chrono::high_resolution_clock::now();
-    // cout << chrono::duration_cast<chrono::nanoseconds>(end -
-    // begin).count()
-    //      << "ns" << std::endl;
 
     delete state.map;
     return outputBuffer;
