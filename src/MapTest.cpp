@@ -82,21 +82,7 @@ TEST_F(ThreadlessTest, Lookup) {
     EXPECT_EQ(map->lookup(1), "");  // lookup non-existing in null bucket
 }
 
-class ThreadedTest : public ::testing ::Test {
-  protected:
-    Map* mapTest;
-    Map* mapControl;
-    void SetUp() override {
-        mapTest = new Map(100);
-        mapControl = new Map(100);
-    };
-    void TearDown() override {
-        delete mapTest;
-        delete mapControl;
-    }
-};
-
-TEST_F(ThreadedTest, StressTest) {
+TEST(ThreadedTest, StressTest) {
     stringstream treatInputStream;
     treatInputStream << "N 10\n";
 
