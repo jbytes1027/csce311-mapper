@@ -92,12 +92,11 @@ struct mapper_shared_state_t {
     sem_t semConsumersDone;
     // used to tell producer that the scheduled opperation has started
     sem_t semSignalOppStarted;
-    string currInputLine;
     // tracks which line the producer is producing
     long unsigned int currOppIndex;
     // tracks which opperation to output next
     long unsigned int oppToOutput;
-    bool doneProducing;
+    stringstream* inputBuffer;
     stringstream* outputBuffer;
 };
 
@@ -106,22 +105,28 @@ void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
 
     while (true) {
-        // wait for line to be produced
-        wait(&state->semOutputLineAvailable);
+        wait(&state->semSignalOppStarted);
 
-        if (state->doneProducing) {
+        string lineToExecute;
+        getline(*state->inputBuffer, lineToExecute);
+
+        if (lineToExecute == "") {
             post(&state->semConsumersDone);
+            post(&state->semSignalOppStarted);
             return 0;
         }
 
         // store snapshot of index
         long unsigned int threadOutIndex = state->currOppIndex;
 
-        string output = executeLineAndPost(state->currInputLine, state->map,
+        // increase opp index
+        state->currOppIndex++;
+
+        string output = executeLineAndPost(lineToExecute, state->map,
                                            &state->semSignalOppStarted);
 
-        // wait until turn to output by moving through every thread and seeing
-        // if it is their turn to output
+        // wait until turn to output by moving through every thread and
+        // seeing if it is their turn to output
         while (true) {
             wait(&state->semLockOut);
             // if its this threads turn to output
@@ -135,9 +140,7 @@ void* consumeLineThread(void* args) {
                 post(&state->semLockOut);
                 break;
             }
-            post(&state->semSignalOut);
             post(&state->semLockOut);
-            wait(&state->semSignalOut);
         }
     }
 }
@@ -155,24 +158,25 @@ stringstream executeStream(stringstream* streamInput) {
 
     mapper_shared_state_t state;
 
+    state.inputBuffer = streamInput;
     stringstream outputBuffer;
     state.outputBuffer = &outputBuffer;
 
-    getline(*streamInput, state.currInputLine);
+    string threadsInfoLine;
+    getline(*streamInput, threadsInfoLine);
     numConsumers =
-        stoi(state.currInputLine.substr(2, state.currInputLine.length() - 2));
+        stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
 
     sem_init(&state.semConsumersWaiting, 0, numConsumers);
     sem_init(&state.semConsumersDone, 0, 0);
-    sem_init(&state.semSignalOppStarted, 0, 0);
+    sem_init(&state.semSignalOppStarted, 0, 1);
     sem_init(&state.semSignalOut, 0, 0);
     sem_init(&state.semLockOut, 0, 1);
     sem_init(&state.semOutputLineAvailable, 0, 0);
     state.map = new Map();
     state.currOppIndex = 0;
     state.oppToOutput = 0;
-    state.doneProducing = false;
 
     // start numThreads consumer threads
     for (int i = 0; i < numConsumers; i++) {
@@ -185,19 +189,7 @@ stringstream executeStream(stringstream* streamInput) {
         }
     }
 
-    // produce lines
-    while (getline(*streamInput, state.currInputLine)) {
-        wait(&state.semConsumersWaiting);     // wait until 1 thread not waiting
-        post(&state.semOutputLineAvailable);  // signal line can be consumed
-        // wait until map opperation has started to ensure order and allow
-        // thread to get line and index automically
-        wait(&state.semSignalOppStarted);
-
-        state.currOppIndex++;  // increase line index
-
-        // TODO check if needed and if increases signal to past 1
-        post(&state.semSignalOut);
-    }
+    while (!streamInput->eof()) this_thread::sleep_for(chrono::milliseconds(5));
 
     // wait for threads to finish outputing
     int consumersWaiting = -1;
@@ -205,8 +197,6 @@ stringstream executeStream(stringstream* streamInput) {
         sem_getvalue(&state.semConsumersWaiting, &consumersWaiting);
         this_thread::sleep_for(chrono::milliseconds(5));
     } while (consumersWaiting < numConsumers);
-
-    state.doneProducing = true;
 
     // wake all threads so they can notice doneProducting and exit
     wait(&state.semConsumersWaiting);
