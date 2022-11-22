@@ -147,7 +147,7 @@ TEST(ThreadedTest, PerformanceScaling) {
     begin = chrono::high_resolution_clock::now();
     executeStream(&inputStream1C);
     end = chrono::high_resolution_clock::now();
-    cout << "Executed " << numOpp << " operations with 1 consumer in "
+    cout << "Executed " << numOpp << " operations with 1 consumer  in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
@@ -161,7 +161,7 @@ TEST(ThreadedTest, PerformanceScaling) {
     begin = chrono::high_resolution_clock::now();
     executeStream(&inputStream4C);
     end = chrono::high_resolution_clock::now();
-    cout << "Executed " << numOpp << " operations with 4 consumer in "
+    cout << "Executed " << numOpp << " operations with 4 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 }
