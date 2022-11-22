@@ -6,7 +6,6 @@ using namespace std;
 #include <semaphore.h>
 
 #include <iostream>
-#include <sstream>
 #include <string>
 
 Node::Node(int key, string value) {
@@ -123,65 +122,31 @@ void Map::signal(sem_t* semSignal) {
     }
 }
 
-// in map to minimize lock time
-// parse a line to execute and signal back to producer
-string Map::executeLineAndPost(string line, sem_t* semSignalOppStarted) {
-    // get key
-    int keyStart = 2;
-    int keyEnd = keyStart;
-    // move forward till end of line (for L or D) or space (for I)
-    for (long unsigned int i = keyStart; i <= line.length(); i++) {
-        keyEnd = i;
-        if (i != line.length() && line.at(i) == ' ') {
-            break;
-        }
-    }
-    int keyLen = keyEnd - keyStart;
-    string keyString = line.substr(keyStart, keyLen);
-    int key = stoi(keyString);
-
+bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
-    signal(semSignalOppStarted);
-
-    stringstream out;
-
-    char action = line.at(0);
-    if (action == 'D') {
-        bool success = remove(key);
-
-        if (success) {
-            out << "[Success] removed " << key << "\n";
-        } else {
-            out << "[Error] failed to remove " << key << ": value not found\n";
-        }
-    } else if (action == 'L') {
-        string value = lookup(key);
-
-        if (value != "") {
-            out << "[Success] Found \"" << value << "\" from key " << key
-                << "\n";
-        } else {
-            out << "[Error] failed to locate " << key << "\n";
-        }
-    } else if (action == 'I') {
-        int valueStart = keyEnd + 2;
-        int valueEnd = line.length() - 1;
-        int valueLen = valueEnd - valueStart;
-        string value = line.substr(valueStart, valueLen);
-
-        bool success = insert(key, value);
-
-        if (success) {
-            out << "[Success] inserted " << value << " at " << key << "\n";
-        } else {
-            out << "[Error] failed to insert " << key << " at " << value
-                << "\n";
-        }
-    }
-
+    signal(semOppStarted);
+    bool result = insert(key, value);
     unlock(hashValue);
-    return out.str();
+    return result;
+}
+
+string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    signal(semOppStarted);
+    string result = lookup(key);
+    unlock(hashValue);
+    return result;
+}
+
+bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
+    int hashValue = hash(key);
+    lock(hashValue);
+    signal(semOppStarted);
+    bool result = remove(key);
+    unlock(hashValue);
+    return result;
 }
 
 void Map::printBuckets() {
