@@ -205,7 +205,7 @@ stringstream executeStream(stringstream* streamInput) {
     int consumersWaiting = -1;
     do {
         sem_getvalue(&state.semConsumersWaiting, &consumersWaiting);
-        this_thread::sleep_for(chrono::milliseconds(50));
+        this_thread::sleep_for(chrono::milliseconds(5));
     } while (consumersWaiting < numConsumers);
 
     state.doneProducing = true;
@@ -220,7 +220,7 @@ stringstream executeStream(stringstream* streamInput) {
     int consumersDone = -1;
     do {
         sem_getvalue(&state.semConsumersDone, &consumersDone);
-        this_thread::sleep_for(chrono::milliseconds(50));
+        this_thread::sleep_for(chrono::milliseconds(5));
     } while (consumersDone < numConsumers);
 
     // auto end = chrono::high_resolution_clock::now();
