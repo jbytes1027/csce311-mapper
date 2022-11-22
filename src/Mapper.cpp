@@ -95,7 +95,7 @@ struct mapper_shared_state_t {
     // tracks which line the producer is producing
     long unsigned int currOppIndex;
     // tracks which opperation to output next
-    long unsigned int oppToOutput;
+    long unsigned int oppToOutputIndex;
     stringstream* inputBuffer;
     stringstream* outputBuffer;
 };
@@ -130,11 +130,11 @@ void* consumeLineThread(void* args) {
         while (true) {
             wait(&state->semLockOut);
             // if its this threads turn to output
-            if (threadOutIndex == state->oppToOutput) {
+            if (threadOutIndex == state->oppToOutputIndex) {
                 // flush output
                 *(state->outputBuffer) << output;
                 // increment flush turn
-                state->oppToOutput++;
+                state->oppToOutputIndex++;
                 // signal thread is done consuming line
                 post(&state->semConsumersWaiting);
                 post(&state->semLockOut);
@@ -176,7 +176,7 @@ stringstream executeStream(stringstream* streamInput) {
     sem_init(&state.semOutputLineAvailable, 0, 0);
     state.map = new Map();
     state.currOppIndex = 0;
-    state.oppToOutput = 0;
+    state.oppToOutputIndex = 0;
 
     // start numThreads consumer threads
     for (int i = 0; i < numConsumers; i++) {
