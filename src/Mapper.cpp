@@ -226,6 +226,7 @@ void executeFile(string pathInput, string pathOutput) {
     cout << "Loading File\n";
     stringstream outputStream;
     outputStream << fileInput.rdbuf();
+    cout << "Executing File\n";
     stringstream outputBuffer = executeStream(&outputStream);
     cout << "Writing output to disk\n";
     write(&outputBuffer, pathOutput);
