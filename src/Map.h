@@ -28,11 +28,9 @@ class Map {
     Map(int numBuckets = 100);
     ~Map();
     bool insert(int, string);
-    bool concurrentInsertAndPost(int, string, sem_t*);
+    string executeLineAndPost(string, sem_t*);
     bool remove(int);
-    bool concurrentRemoveAndPost(int, sem_t*);
     string lookup(int);
-    string concurrentLookupAndPost(int, sem_t*);
     void printBucket(Node*);
     void printBuckets();
 };
