@@ -11,6 +11,27 @@ class ThreadlessTest : public ::testing ::Test {
     void TearDown() override { delete map; }
 };
 
+bool outputEqualIgnoreThreadCount(stringstream* s1, stringstream* s2) {
+    string line1;
+    string line2;
+
+    // skip first line with thread info
+    getline(*s1, line1);
+    getline(*s2, line2);
+
+    while (true) {
+        if (s1->eof())
+            if (s2->eof())
+                return true;
+            else
+                return false;
+
+        getline(*s1, line1);
+        getline(*s2, line2);
+        if (line1 != line2) return false;
+    }
+}
+
 TEST_F(ThreadlessTest, Insert) {
     EXPECT_TRUE(map->insert(0, "a"));    // test ins to empty bucket
     EXPECT_TRUE(map->insert(10, "b"));   // test ins to non-empty bucket
@@ -63,24 +84,38 @@ TEST_F(ThreadlessTest, Lookup) {
 
 class ThreadedTest : public ::testing ::Test {
   protected:
-    Map* map;
-    void SetUp() override { map = new Map(100); };
-    void TearDown() override { delete map; }
+    Map* mapTest;
+    Map* mapControl;
+    void SetUp() override {
+        mapTest = new Map(100);
+        mapControl = new Map(100);
+    };
+    void TearDown() override {
+        delete mapTest;
+        delete mapControl;
+    }
 };
 
 TEST_F(ThreadedTest, StressTest) {
-    stringstream inputFileBuffer;
-    inputFileBuffer << "N 10\n";
+    stringstream treatInputStream;
+    treatInputStream << "N 10\n";
+
+    stringstream controlInputStream;
+    controlInputStream << "N 1\n";
 
     int numOpp = 10000 / 3;
     for (int i = 0; i < numOpp; i++) {
-        inputFileBuffer << "I 1 \"asdf\"\n";
-        inputFileBuffer << "L 1\n";
-        inputFileBuffer << "D 1\n";
+        treatInputStream << "I 1 \"asdf\"\n";
+        treatInputStream << "L 1\n";
+        treatInputStream << "D 1\n";
+
+        controlInputStream << "I 1 \"asdf\"\n";
+        controlInputStream << "L 1\n";
+        controlInputStream << "D 1\n";
     }
 
-    string inputFilePath = "StressTestInput.txt";
-    write(&inputFileBuffer, inputFilePath);
+    stringstream treatOutput = executeStream(&treatInputStream);
+    stringstream controlOutput = executeStream(&controlInputStream);
 
-    inputFileBuffer << "\n";
+    EXPECT_TRUE(outputEqualIgnoreThreadCount(&treatOutput, &controlOutput));
 }
