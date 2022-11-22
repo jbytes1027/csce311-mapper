@@ -112,11 +112,11 @@ TEST(ThreadedTest, PerformanceScaling) {
     stringstream inputStream1C;
     inputStream1C << "N 1\n";
 
-    stringstream inputStream3C;
-    inputStream3C << "N 3\n";
+    stringstream inputStream2C;
+    inputStream2C << "N 2\n";
 
-    stringstream inputStream9C;
-    inputStream9C << "N 9\n";
+    stringstream inputStream4C;
+    inputStream4C << "N 4\n";
 
     std::mt19937 randGen;
     randGen.seed(time(nullptr));
@@ -124,20 +124,20 @@ TEST(ThreadedTest, PerformanceScaling) {
     int numOpp = 100000;
     for (int i = 0; i < numOpp; i++) {
         int opp = randGen() % 3;
-        int key = randGen() % 30;
+        int key = randGen() % 1000;
 
         if (opp == 0) {
             inputStream1C << "I " << key << " \"asdf\"\n";
-            inputStream3C << "I " << key << " \"asdf\"\n";
-            inputStream9C << "I " << key << " \"asdf\"\n";
+            inputStream2C << "I " << key << " \"asdf\"\n";
+            inputStream4C << "I " << key << " \"asdf\"\n";
         } else if (opp == 1) {
             inputStream1C << "L " << key << "\n";
-            inputStream3C << "L " << key << "\n";
-            inputStream9C << "L " << key << "\n";
+            inputStream2C << "L " << key << "\n";
+            inputStream4C << "L " << key << "\n";
         } else if (opp == 2) {
             inputStream1C << "D " << key << "\n";
-            inputStream3C << "D " << key << "\n";
-            inputStream9C << "D " << key << "\n";
+            inputStream2C << "D " << key << "\n";
+            inputStream4C << "D " << key << "\n";
         }
     }
 
@@ -152,16 +152,16 @@ TEST(ThreadedTest, PerformanceScaling) {
          << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream3C);
+    executeStream(&inputStream2C);
     end = chrono::high_resolution_clock::now();
-    cout << "Executed " << numOpp << " opperations with 3 consumers in "
+    cout << "Executed " << numOpp << " opperations with 2 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream9C);
+    executeStream(&inputStream4C);
     end = chrono::high_resolution_clock::now();
-    cout << "Executed " << numOpp << " opperations with 9 consumer in "
+    cout << "Executed " << numOpp << " opperations with 4 consumer in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 }
