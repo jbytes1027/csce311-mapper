@@ -24,8 +24,10 @@ bool outputEqualIgnoreThreadCount(stringstream* s1, stringstream* s2) {
     while (true) {
         if (s1->eof())
             if (s2->eof())
+                // if both finish at the same time
                 return true;
             else
+                // if one finishes first
                 return false;
 
         getline(*s1, line1);
