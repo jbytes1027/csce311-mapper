@@ -4,6 +4,7 @@ using namespace std;
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <time.h>  // nanosleep
 
 #include <iostream>
 #include <string>
@@ -122,10 +123,13 @@ void Map::signal(sem_t* semSignal) {
     }
 }
 
+struct timespec sleepTime = {0, 1};  // 1ns
+
 bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
     signal(semOppStarted);
+    // nanosleep(&sleepTime, &sleepTime);
     bool result = insert(key, value);
     unlock(hashValue);
     return result;
@@ -135,6 +139,7 @@ string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
     signal(semOppStarted);
+    // nanosleep(&sleepTime, &sleepTime);
     string result = lookup(key);
     unlock(hashValue);
     return result;
@@ -144,6 +149,7 @@ bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
     signal(semOppStarted);
+    // nanosleep(&sleepTime, &sleepTime);
     bool result = remove(key);
     unlock(hashValue);
     return result;
