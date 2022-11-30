@@ -24,61 +24,6 @@ void wait(sem_t* sem) {
     }
 }
 
-// parse a line to execute and signal back to producer
-string executeLineAndPost(string line, Map* map, sem_t* semSignalOppStarted) {
-    stringstream out;
-
-    int keyStart = 2;
-    int keyEnd = keyStart;
-    // move forward till end of line (for L or D) or space (for I)
-    for (long unsigned int i = keyStart; i <= line.length(); i++) {
-        keyEnd = i;
-        if (i != line.length() && line.at(i) == ' ') {
-            break;
-        }
-    }
-    int keyLen = keyEnd - keyStart;
-    string keyString = line.substr(keyStart, keyLen);
-    int key = stoi(keyString);
-
-    char action = line.at(0);
-    if (action == 'D') {
-        bool success = map->concurrentRemoveAndPost(key, semSignalOppStarted);
-
-        if (success) {
-            out << "[Success] removed " << key << "\n";
-        } else {
-            out << "[Error] failed to remove " << key << ": value not found\n";
-        }
-    } else if (action == 'L') {
-        string value = map->concurrentLookupAndPost(key, semSignalOppStarted);
-
-        if (value != "") {
-            out << "[Success] Found \"" << value << "\" from key " << key
-                << "\n";
-        } else {
-            out << "[Error] failed to locate " << key << "\n";
-        }
-    } else if (action == 'I') {
-        int valueStart = keyEnd + 2;
-        int valueEnd = line.length() - 1;
-        int valueLen = valueEnd - valueStart;
-        string value = line.substr(valueStart, valueLen);
-
-        bool success =
-            map->concurrentInsertAndPost(key, value, semSignalOppStarted);
-
-        if (success) {
-            out << "[Success] inserted " << value << " at " << key << "\n";
-        } else {
-            out << "[Error] failed to insert " << key << " at " << value
-                << "\n";
-        }
-    }
-
-    return out.str();
-}
-
 // shared state for consumers and producers
 struct mapper_shared_state_t {
     Map* map;
