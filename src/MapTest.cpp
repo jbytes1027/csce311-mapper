@@ -91,8 +91,8 @@ TEST(ThreadedTest, StressTest) {
     stringstream controlInputStream;
     controlInputStream << "N 1\n";
 
-    int numOpp = 100000 / 3;
-    for (int i = 0; i < numOpp; i++) {
+    int numOpp = 10000;
+    for (int i = 0; i < numOpp / 3; i++) {
         treatInputStream << "I 1 \"asdf\"\n";
         treatInputStream << "L 1\n";
         treatInputStream << "D 1\n";
@@ -124,7 +124,7 @@ TEST(ThreadedTest, PerformanceScaling) {
     std::mt19937 randGen;
     randGen.seed(time(nullptr));
 
-    int numOpp = 1000000;
+    int numOpp = 100000;
     for (int i = 0; i < numOpp; i++) {
         int opp = randGen() % 3;
         int key = randGen() % 1000;
