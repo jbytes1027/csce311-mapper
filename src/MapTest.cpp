@@ -108,7 +108,7 @@ TEST(ThreadedTest, StressTest) {
     EXPECT_TRUE(outputEqualIgnoreThreadCount(&treatOutput, &controlOutput));
 }
 
-TEST(ThreadedTest, PerformanceScaling) {
+TEST(ThreadedTest, RandomKeyPerformanceScaling) {
     stringstream inputStream1C;
     inputStream1C << "N 1\n";
 
@@ -147,34 +147,39 @@ TEST(ThreadedTest, PerformanceScaling) {
         }
     }
 
+    // https://stackoverflow.com/questions/22387586/measuring-execution-time-of-a-function-in-c
     chrono::system_clock::time_point begin;
     chrono::system_clock::time_point end;
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream1C);
+    stringstream outputStream1C = executeStream(&inputStream1C);
     end = chrono::high_resolution_clock::now();
     cout << "Executed " << numOpp << " operations with 1 consumer  in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream2C);
+    stringstream outputStream2C = executeStream(&inputStream2C);
     end = chrono::high_resolution_clock::now();
     cout << "Executed " << numOpp << " operations with 2 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream3C);
+    stringstream outputStream3C = executeStream(&inputStream3C);
     end = chrono::high_resolution_clock::now();
     cout << "Executed " << numOpp << " operations with 3 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
-    executeStream(&inputStream4C);
+    stringstream outputStream4C = executeStream(&inputStream4C);
     end = chrono::high_resolution_clock::now();
     cout << "Executed " << numOpp << " operations with 4 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
+
+    // not comprehensive but good enough because stringstreams can't be copied
+    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream1C, &outputStream2C));
+    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream3C, &outputStream4C));
 }
