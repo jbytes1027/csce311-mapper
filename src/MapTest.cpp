@@ -115,6 +115,9 @@ TEST(ThreadedTest, PerformanceScaling) {
     stringstream inputStream2C;
     inputStream2C << "N 2\n";
 
+    stringstream inputStream3C;
+    inputStream3C << "N 3\n";
+
     stringstream inputStream4C;
     inputStream4C << "N 4\n";
 
@@ -129,14 +132,17 @@ TEST(ThreadedTest, PerformanceScaling) {
         if (opp == 0) {
             inputStream1C << "I " << key << " \"asdf\"\n";
             inputStream2C << "I " << key << " \"asdf\"\n";
+            inputStream3C << "I " << key << " \"asdf\"\n";
             inputStream4C << "I " << key << " \"asdf\"\n";
         } else if (opp == 1) {
             inputStream1C << "L " << key << "\n";
             inputStream2C << "L " << key << "\n";
+            inputStream3C << "L " << key << "\n";
             inputStream4C << "L " << key << "\n";
         } else if (opp == 2) {
             inputStream1C << "D " << key << "\n";
             inputStream2C << "D " << key << "\n";
+            inputStream3C << "D " << key << "\n";
             inputStream4C << "D " << key << "\n";
         }
     }
@@ -155,6 +161,13 @@ TEST(ThreadedTest, PerformanceScaling) {
     executeStream(&inputStream2C);
     end = chrono::high_resolution_clock::now();
     cout << "Executed " << numOpp << " operations with 2 consumers in "
+         << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
+         << "ms\n";
+
+    begin = chrono::high_resolution_clock::now();
+    executeStream(&inputStream3C);
+    end = chrono::high_resolution_clock::now();
+    cout << "Executed " << numOpp << " operations with 3 consumers in "
          << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
          << "ms\n";
 
