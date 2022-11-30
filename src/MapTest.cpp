@@ -154,32 +154,45 @@ TEST(ThreadedTest, RandomKeyPerformanceScaling) {
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream1C = executeStream(&inputStream1C);
     end = chrono::high_resolution_clock::now();
+    int msExec1C =
+        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 1 consumer  in "
-         << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
-         << "ms\n";
+         << msExec1C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream2C = executeStream(&inputStream2C);
     end = chrono::high_resolution_clock::now();
+    int msExec2C =
+        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 2 consumers in "
-         << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
-         << "ms\n";
+         << msExec2C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream3C = executeStream(&inputStream3C);
     end = chrono::high_resolution_clock::now();
+    int msExec3C =
+        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 3 consumers in "
-         << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
-         << "ms\n";
+         << msExec3C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream4C = executeStream(&inputStream4C);
     end = chrono::high_resolution_clock::now();
+    int msExec4C =
+        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 4 consumers in "
-         << chrono::duration_cast<chrono::milliseconds>(end - begin).count()
-         << "ms\n";
+         << msExec4C << "ms\n";
 
+    // test correctness
     // not comprehensive but good enough because stringstreams can't be copied
     EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream1C, &outputStream2C));
     EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream3C, &outputStream4C));
+
+    // test scaling
+    // 2 consumers is x times faster than 1 consumer
+    EXPECT_GT((double)msExec1C / (double)msExec2C, 1.5);
+    // 3 consumers is x times faster
+    EXPECT_GT((double)msExec1C / (double)msExec3C, 2);
+    // 4 consumers is x times faster than 1 consumer
+    EXPECT_GT((double)msExec1C / (double)msExec4C, 2.5);
 }
