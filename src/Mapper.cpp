@@ -82,12 +82,9 @@ string executeLineAndPost(string line, Map* map, sem_t* semSignalOppStarted) {
 // shared state for consumers and producers
 struct mapper_shared_state_t {
     Map* map;
-    sem_t semOutputLineAvailable;
     sem_t semLockRead;
     // used to automically output from consumer
     sem_t semLockOut;
-    // tracks how many threads are running
-    sem_t semConsumersWaiting;
     // tracks how many threads have stopped running
     sem_t semConsumersDone;
     // used to tell producer that the scheduled opperation has started
@@ -204,8 +201,6 @@ void* consumeLineThread(void* args) {
         *(state->outputBuffer) << outputLine.str();
         // increment flush turn
         state->oppToOutputIndex++;
-        // signal thread is done consuming line
-        post(&state->semConsumersWaiting);
         post(&state->semLockOut);
     }
 }
@@ -233,12 +228,10 @@ stringstream executeStream(stringstream* streamInput) {
         stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
 
-    sem_init(&state.semConsumersWaiting, 0, numConsumers);
     sem_init(&state.semConsumersDone, 0, 0);
     sem_init(&state.semLockScheduleOpp, 0, 1);
     sem_init(&state.semLockOut, 0, 1);
     sem_init(&state.semLockRead, 0, 1);
-    sem_init(&state.semOutputLineAvailable, 0, 0);
     state.map = new Map();
     state.currOppReadIndex = 0;
     state.currOppExecuteIndex = 0;
@@ -256,19 +249,6 @@ stringstream executeStream(stringstream* streamInput) {
     }
 
     while (!streamInput->eof()) this_thread::sleep_for(chrono::milliseconds(5));
-
-    // wait for threads to finish outputing
-    int consumersWaiting = -1;
-    do {
-        sem_getvalue(&state.semConsumersWaiting, &consumersWaiting);
-        this_thread::sleep_for(chrono::milliseconds(5));
-    } while (consumersWaiting < numConsumers);
-
-    // wake all threads so they can notice doneProducting and exit
-    wait(&state.semConsumersWaiting);
-    for (int i = 0; i < numConsumers; i++) {
-        post(&state.semOutputLineAvailable);
-    }
 
     // wait for threads to exit
     int consumersDone = -1;
