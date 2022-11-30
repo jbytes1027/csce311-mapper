@@ -190,7 +190,8 @@ TEST(ThreadedTest, RandomKeyPerformanceScaling) {
     EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream1C, &outputStream2C));
     EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream3C, &outputStream4C));
 
-    // test scaling
+    // test scaling not speed because speed depends on the pc and whats running
+    // in the background
     // 2 consumers is x times faster than 1 consumer
     EXPECT_GT((double)msExec1C / (double)msExec2C, 1.5);
     // 3 consumers is x times faster
