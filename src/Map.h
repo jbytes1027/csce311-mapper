@@ -17,11 +17,13 @@ class Map {
   private:
     int numBuckets;
     Node** buckets;
+    // array of sems, one for each bucket
     sem_t* sems;
     int hash(int);
     bool keyInBucket(int, Node*);
     void lock(int bucket);
     void unlock(int bucket);
+    // alias for sem_post with error checking
     void signal(sem_t*);
 
   public:

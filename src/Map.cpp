@@ -2,7 +2,6 @@ using namespace std;
 
 #include "Map.h"
 
-#include <pthread.h>
 #include <semaphore.h>
 
 #include <iostream>
@@ -19,7 +18,7 @@ Map::Map(int numBuckets) {
     buckets = new Node*[numBuckets];
     sems = new sem_t[numBuckets];
 
-    // init buckets to null
+    // init buckets to nullptr and their sem to 1
     for (int i = 0; i < numBuckets; i++) {
         buckets[i] = nullptr;
 
@@ -31,10 +30,13 @@ Map::Map(int numBuckets) {
 }
 
 Map::~Map() {
+    // for every bucket
     for (int i = 0; i < numBuckets; i++) {
+        // delete all the nodes in the bucket
         while (buckets[i] != nullptr) {
             remove(buckets[i]->key);
         }
+        // delete the buckets sem
         sem_destroy(&sems[i]);
     }
 
@@ -45,6 +47,7 @@ Map::~Map() {
 int Map::hash(int value) { return value % numBuckets; }
 
 bool Map::keyInBucket(int key, Node* head) {
+    // start at the head node of the bucket; move forwared until nullptr
     for (Node* node = head; node != nullptr; node = node->next) {
         if (node->key == key) {
             return true;
@@ -57,44 +60,48 @@ bool Map::insert(int key, string value) {
     int hashValue = hash(key);
     Node* head = buckets[hashValue];
 
-    if (keyInBucket(key, head)) {
-        return false;
-    }
+    // if key already exists fail to insert
+    if (keyInBucket(key, head)) return false;
 
+    // new node to insert
     Node* newNode = new Node(key, value);
 
-    if (head == nullptr) {
-        buckets[hashValue] = newNode;
-        return true;
-    }
+    // if the bucket is not empty:
+    // point the new node to the existing bucket's head
+    if (head != nullptr) newNode->next = head;
 
-    newNode->next = head;
+    // insert the new node at the head of the bucket
     buckets[hashValue] = newNode;
     return true;
 }
 
 string Map::lookup(int key) {
     int hashValue = hash(key);
-    Node* head = buckets[hashValue];
 
-    for (Node* node = head; node != nullptr; node = node->next) {
+    // start at the head node of the bucket; move forwared until nullptr
+    for (Node* node = buckets[hashValue]; node != nullptr; node = node->next) {
         if (node->key == key) {
             return node->value;
         }
     }
 
+    // nothing found
     return "";
 }
 
 bool Map::remove(int key) {
     int hashValue = hash(key);
-    Node* head = buckets[hashValue];
 
+    // stores the previously visited node so that when the current node is
+    // removed, the previous node's next pointer can be updated
     Node* prevNode = nullptr;
-    Node* currNode = head;
+    // start from the head of the bucket
+    Node* currNode = buckets[hashValue];
+    // while not at the end of the bucket
     while (currNode != nullptr) {
         if (currNode->key == key) {
             // update pointers around node
+            // if not removing head
             if (prevNode != nullptr) {
                 prevNode->next = currNode->next;
             } else {  // removing head
@@ -104,6 +111,7 @@ bool Map::remove(int key) {
             delete currNode;
             return true;
         } else {
+            // move forward
             prevNode = currNode;
             currNode = currNode->next;
         }
@@ -122,6 +130,7 @@ void Map::signal(sem_t* semSignal) {
     }
 }
 
+// sleep without blocking; for demonstrating scaling
 void sleep() {
     for (int i = 0; i < 10000; i++)
         ;
@@ -131,6 +140,7 @@ void sleep() {
 bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
+    // tell caller opp has started
     signal(semOppStarted);
     sleep();
     bool result = insert(key, value);
@@ -141,6 +151,7 @@ bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
 string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
+    // tell caller opp has started
     signal(semOppStarted);
     sleep();
     string result = lookup(key);
@@ -151,6 +162,7 @@ string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
 bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
     int hashValue = hash(key);
     lock(hashValue);
+    // tell caller opp has started
     signal(semOppStarted);
     sleep();
     bool result = remove(key);
@@ -158,6 +170,7 @@ bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
     return result;
 }
 
+// for debugging
 void Map::printBuckets() {
     for (int i = 0; i < numBuckets; i++) {
         cout << i << ": ";
@@ -165,6 +178,7 @@ void Map::printBuckets() {
     }
 }
 
+// for debugging
 void Map::printBucket(Node* head) {
     for (Node* node = head; node != nullptr; node = node->next) {
         cout << "(" << node->key << ", " << node->value << ") -> ";
