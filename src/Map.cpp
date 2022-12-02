@@ -13,7 +13,8 @@ Node::Node(int key, string value) {
     next = nullptr;
 }
 
-Map::Map(int numBuckets) {
+Map::Map(int numBuckets, int oppPaddingCycles) {
+    this->numCyclesToSleepPerOpp = oppPaddingCycles;
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
     sems = new sem_t[numBuckets];
@@ -130,9 +131,9 @@ void Map::signal(sem_t* semSignal) {
     }
 }
 
-// sleep without blocking; for demonstrating scaling
-void sleep() {
-    for (int i = 0; i < 10000; i++)
+// sleep without blocking; for demonstrating scaling; defaults to 0 cycles
+void sleep(int numCycles) {
+    for (int i = 0; i < numCycles; i++)
         ;
     return;
 }
@@ -142,7 +143,7 @@ bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
     lock(hashValue);
     // tell caller opp has started
     signal(semOppStarted);
-    sleep();
+    sleep(this->numCyclesToSleepPerOpp);
     bool result = insert(key, value);
     unlock(hashValue);
     return result;
@@ -153,7 +154,7 @@ string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
     lock(hashValue);
     // tell caller opp has started
     signal(semOppStarted);
-    sleep();
+    sleep(numCyclesToSleepPerOpp);
     string result = lookup(key);
     unlock(hashValue);
     return result;
@@ -164,7 +165,7 @@ bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
     lock(hashValue);
     // tell caller opp has started
     signal(semOppStarted);
-    sleep();
+    sleep(numCyclesToSleepPerOpp);
     bool result = remove(key);
     unlock(hashValue);
     return result;

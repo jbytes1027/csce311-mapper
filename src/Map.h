@@ -25,9 +25,11 @@ class Map {
     void unlock(int bucket);
     // alias for sem_post with error checking
     void signal(sem_t*);
+    // blocking sleep to pad opperation time to demonstrate scaling
+    int numCyclesToSleepPerOpp;
 
   public:
-    Map(int numBuckets = 100);
+    Map(int numBuckets = 100, int oppPaddingCycles = 0);
     ~Map();
     bool insert(int, string);
     bool concurrentInsertAndPost(int, string, sem_t*);

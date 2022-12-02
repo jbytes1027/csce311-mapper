@@ -174,7 +174,8 @@ void write(stringstream* stream, string pathOutput) {
 }
 
 // runs input stream and returns output in stringstream buffer
-stringstream executeStream(stringstream* streamInput) {
+// map argument for testing
+stringstream executeStream(stringstream* streamInput, Map* map) {
     int numConsumers;
 
     mapper_shared_state_t state;
@@ -196,7 +197,7 @@ stringstream executeStream(stringstream* streamInput) {
     sem_init(&state.semLockScheduleOpp, 0, 1);
     sem_init(&state.semLockOut, 0, 1);
     sem_init(&state.semLockRead, 0, 1);
-    state.map = new Map();
+    state.map = map;
     state.currOppReadIndex = 0;
     state.currOppExecuteIndex = 0;
     state.oppToOutputIndex = 0;
@@ -222,6 +223,10 @@ stringstream executeStream(stringstream* streamInput) {
 
     delete state.map;
     return outputBuffer;
+}
+
+stringstream executeStream(stringstream* streamInput) {
+    return executeStream(streamInput, new Map());
 }
 
 void executeFile(string pathInput, string pathOutput) {
