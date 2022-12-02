@@ -157,18 +157,21 @@ void write(stringstream* stream, string pathOutput) {
     fileOutput.close();
 }
 
-// runs input stream line by line and returns output
+// runs input stream and returns output in stringstream buffer
 stringstream executeStream(stringstream* streamInput) {
     int numConsumers;
 
     mapper_shared_state_t state;
 
     state.inputBuffer = streamInput;
+    // init the output buffer
     stringstream outputBuffer;
     state.outputBuffer = &outputBuffer;
 
     string threadsInfoLine;
+    // get the first line which contains the number of threads to use
     getline(*streamInput, threadsInfoLine);
+    // parse the number of consumers to use
     numConsumers =
         stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
@@ -182,7 +185,7 @@ stringstream executeStream(stringstream* streamInput) {
     state.currOppExecuteIndex = 0;
     state.oppToOutputIndex = 0;
 
-    // start numThreads consumer threads
+    // create all consumer threads
     for (int i = 0; i < numConsumers; i++) {
         pthread_t thread;
         int status =
@@ -193,13 +196,12 @@ stringstream executeStream(stringstream* streamInput) {
         }
     }
 
-    while (!streamInput->eof()) this_thread::sleep_for(chrono::milliseconds(5));
-
-    // wait for threads to exit
     int consumersDone = -1;
+    // check every x ms to see if all threads finished
     do {
         sem_getvalue(&state.semConsumersDone, &consumersDone);
         this_thread::sleep_for(chrono::milliseconds(5));
+        // while not all threads done
     } while (consumersDone < numConsumers);
 
     delete state.map;
