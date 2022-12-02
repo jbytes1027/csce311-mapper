@@ -50,6 +50,8 @@ void* consumeLineThread(void* args) {
     while (true) {
         string lineToExecute;
 
+        // READ INPUT
+        // lock to read one input line at a time
         wait(&state->semLockRead);
         // store line
         getline(*state->inputBuffer, lineToExecute);
@@ -58,18 +60,21 @@ void* consumeLineThread(void* args) {
         // increase opp index
         state->currOppReadIndex++;
         post(&state->semLockRead);
+        // END READ INPUT
 
+        // if no lines left to read
         if (lineToExecute == "") {
-            // TODO wakeup next consumer
             // signal done
             post(&state->semConsumersDone);
+            // exit
             return 0;
         }
 
         // PARSE KEY
         int keyStart = 2;
         int keyEnd = keyStart;
-        // move forward till end of line (for L or D) or space (for I)
+        // move forward till end of line (for Lookup or Delete)
+        // or space (for Insert)
         for (long unsigned int i = keyStart; i <= lineToExecute.length(); i++) {
             keyEnd = i;
             if (i != lineToExecute.length() && lineToExecute.at(i) == ' ') {
@@ -84,17 +89,24 @@ void* consumeLineThread(void* args) {
         stringstream outputLine;
         char action = lineToExecute.at(0);
 
+        // EXECUTE OPP
+        // lock to ensure order of execution: unlocked in map opp call once opp
+        // has started and map has internal lock
         // wait until turn to execute by moving through every thread and
         // seeing if it is their turn to output
         while (true) {
             wait(&state->semLockScheduleOpp);
-            // if its this threads turn to output
+            // if its this threads turn to execute; keep lock
             if (currOppIndex == state->currOppExecuteIndex) break;
             post(&state->semLockScheduleOpp);  // cycle through waiting
         }
 
+        // inc because curr index is about to execute (and locked until it does)
         state->currOppExecuteIndex++;
 
+        // run action on map and wait until the map has started the opp
+        // then release the execution order enforcing lock
+        // then figure out what to output
         if (action == 'D') {
             bool success = state->map->concurrentRemoveAndPost(
                 key, &state->semLockScheduleOpp);
@@ -132,12 +144,15 @@ void* consumeLineThread(void* args) {
                            << value << "\n";
             }
         }
+        // END EXECUTE OPP
 
+        // WRITE OUTPUT
+        // lock to ensure order of output
         // wait until turn to output by moving through every thread and
         // seeing if it is their turn to output
         while (true) {
             wait(&state->semLockOut);
-            // if its this threads turn to output
+            // if its this threads turn to output; keep lock
             if (currOppIndex == state->oppToOutputIndex) break;
             post(&state->semLockOut);  // cycle through waiting
         }
@@ -147,6 +162,7 @@ void* consumeLineThread(void* args) {
         // increment flush turn
         state->oppToOutputIndex++;
         post(&state->semLockOut);
+        // END WRITE OUTPUT
     }
 }
 
