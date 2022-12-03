@@ -29,7 +29,7 @@ class Map {
     int numCyclesToSleepPerOpp;
 
   public:
-    Map(int numBuckets = 100, int oppPaddingCycles = 0);
+    Map(int numBuckets = 1000, int oppPaddingCycles = 0);
     ~Map();
     bool insert(int, string);
     bool concurrentInsertAndPost(int, string, sem_t*);
