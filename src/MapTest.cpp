@@ -93,7 +93,7 @@ TEST(ThreadedTest, StressTest) {
     stringstream controlInputStream;
     controlInputStream << "N 1\n";
 
-    int numOpp = 10000;
+    int numOpp = 100000;
     for (int i = 0; i < numOpp / 3; i++) {
         treatInputStream << "I 1 \"asdf\"\n";
         treatInputStream << "L 1\n";
