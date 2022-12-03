@@ -199,6 +199,8 @@ TEST(ThreadedTest, MapperRandomKeyScaling) {
 }
 
 TEST(ThreadedTest, MapRandomKeyScaling) {
+    // add a delay to map operations to demonstrate map scaling
+    // this makes the ordering less of the overall runtime
     int mapOppDelayCycles = 40000;
     Map* map1C = new Map(100, mapOppDelayCycles);
     Map* map2C = new Map(100, mapOppDelayCycles);
@@ -286,8 +288,6 @@ TEST(ThreadedTest, MapRandomKeyScaling) {
 
     // test scaling not speed because speed depends on the pc and whats running
     // in the background
-    // 2 consumers is faster than 1 consumer
-    EXPECT_GT((double)msExec1C / (double)msExec2C, 1);
-    // 3 consumers is faster than 1 consumer
-    EXPECT_GT((double)msExec1C / (double)msExec3C, 1);
+    // 4 consumers is x times faster than 1 consumer
+    EXPECT_GT((double)msExec1C / (double)msExec4C, 2.5);
 }
