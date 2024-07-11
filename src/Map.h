@@ -1,9 +1,9 @@
-using namespace std;
-
 #include <pthread.h>
 #include <semaphore.h>
 
 #include <string>
+
+using namespace std;
 
 class Node {
   public:
@@ -16,27 +16,42 @@ class Node {
 class Map {
   private:
     int numBuckets;
+
     Node** buckets;
-    // array of sems, one for each bucket
+
+    // Array of sems, one for each bucket
     sem_t* sems;
+
     int hash(int);
-    bool keyInBucket(int, Node*);
+
+    bool isKeyInBucket(int, Node*);
+
     void lock(int bucket);
+
     void unlock(int bucket);
-    // alias for sem_post with error checking
+
     void signal(sem_t*);
-    // blocking sleep to pad opperation time to demonstrate scaling
+
     int numCyclesToSleepPerOpp;
 
   public:
     Map(int numBuckets = 1000, int oppPaddingCycles = 0);
+
     ~Map();
+
     bool insert(int, string);
+
     bool concurrentInsertAndPost(int, string, sem_t*);
+
     bool remove(int);
+
     bool concurrentRemoveAndPost(int, sem_t*);
+
     string lookup(int);
+
     string concurrentLookupAndPost(int, sem_t*);
+
     void printBucket(Node*);
+
     void printBuckets();
 };

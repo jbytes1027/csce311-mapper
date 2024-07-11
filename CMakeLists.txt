@@ -14,5 +14,5 @@ target_link_libraries(mapper-test gtest gtest_main pthread)
 include(GoogleTest)
 gtest_discover_tests(mapper-test)
 
-add_executable(mapper src/CliMain.cpp src/Mapper.h src/Mapper.cpp src/Map.cpp src/Map.h)
+add_executable(mapper src/MapperCli.cpp src/Mapper.h src/Mapper.cpp src/Map.cpp src/Map.h)
 target_link_libraries(mapper pthread)

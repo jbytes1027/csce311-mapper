@@ -1,4 +1,3 @@
-using namespace std;
 #include <semaphore.h>
 
 #include <chrono>
@@ -9,6 +8,8 @@ using namespace std;
 #include <thread>  // for sleeping
 
 #include "Map.h"
+
+using namespace std;
 
 void post(sem_t* sem) {
     // try to post until success

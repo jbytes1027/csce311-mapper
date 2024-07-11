@@ -1,4 +1,3 @@
-using namespace std;
 #include <chrono>
 #include <random>
 #include <string>
@@ -13,22 +12,24 @@ class ThreadlessTest : public ::testing ::Test {
     void TearDown() override { delete map; }
 };
 
-bool outputEqualIgnoreThreadCount(stringstream* s1, stringstream* s2) {
+bool isOutputEqualWithoutThreadCount(stringstream* s1, stringstream* s2) {
     string line1;
     string line2;
 
-    // skip first line with thread info
+    // Skip first line with thread info
     getline(*s1, line1);
     getline(*s2, line2);
 
     while (true) {
-        if (s1->eof())
-            if (s2->eof())
-                // if both finish at the same time
+        if (s1->eof()) {
+            if (s2->eof()) {
+                // If both finish at the same time
                 return true;
-            else
-                // if one finishes first
+            } else {
+                // If one finishes first
                 return false;
+            }
+        }
 
         getline(*s1, line1);
         getline(*s2, line2);
@@ -80,8 +81,8 @@ TEST_F(ThreadlessTest, Lookup) {
     EXPECT_EQ(map->lookup(100), "c");  // lookup head
 
     EXPECT_EQ(map->lookup(0), "a");  // lookup existing
-    EXPECT_EQ(map->lookup(1000),
-              "");  // lookup non-existing in bucket with non-empty bucket
+    // lookup non-existing in bucket with non-empty bucket
+    EXPECT_EQ(map->lookup(1000), "");
 
     EXPECT_EQ(map->lookup(1), "");  // lookup non-existing in null bucket
 }
@@ -107,7 +108,7 @@ TEST(ThreadedTest, StressTest) {
     stringstream treatOutput = executeStream(&treatInputStream);
     stringstream controlOutput = executeStream(&controlInputStream);
 
-    EXPECT_TRUE(outputEqualIgnoreThreadCount(&treatOutput, &controlOutput));
+    EXPECT_TRUE(isOutputEqualWithoutThreadCount(&treatOutput, &controlOutput));
 }
 
 TEST(ThreadedTest, MapperRandomKeyScaling) {
@@ -187,8 +188,10 @@ TEST(ThreadedTest, MapperRandomKeyScaling) {
 
     // test correctness
     // not comprehensive but good enough because stringstreams can't be copied
-    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream1C, &outputStream2C));
-    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream3C, &outputStream4C));
+    EXPECT_TRUE(
+        isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
+    EXPECT_TRUE(
+        isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
     // test scaling not speed because speed depends on the pc and whats running
     // in the background
@@ -283,8 +286,10 @@ TEST(ThreadedTest, MapRandomKeyScaling) {
 
     // test correctness
     // not comprehensive but good enough because stringstreams can't be copied
-    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream1C, &outputStream2C));
-    EXPECT_TRUE(outputEqualIgnoreThreadCount(&outputStream3C, &outputStream4C));
+    EXPECT_TRUE(
+        isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
+    EXPECT_TRUE(
+        isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
     // test scaling not speed because speed depends on the pc and whats running
     // in the background
