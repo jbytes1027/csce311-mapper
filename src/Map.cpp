@@ -133,8 +133,7 @@ void Map::signal(sem_t* semSignal) {
 
 // sleep without blocking; for demonstrating scaling; defaults to 0 cycles
 void sleep(int numCycles) {
-    for (int i = 0; i < numCycles; i++)
-        ;
+    for (int i = 0; i < numCycles; i++);
     return;
 }
 
