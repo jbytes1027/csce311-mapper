@@ -205,10 +205,10 @@ TEST(ThreadedTest, MapRandomKeyScaling) {
     // add a delay to map operations to demonstrate map scaling
     // this makes the ordering less of the overall runtime
     int mapOppDelayCycles = 40000;
-    Map* map1C = new Map(100, mapOppDelayCycles);
-    Map* map2C = new Map(100, mapOppDelayCycles);
-    Map* map3C = new Map(100, mapOppDelayCycles);
-    Map* map4C = new Map(100, mapOppDelayCycles);
+    ConcurrentMap* map1C = new ConcurrentMap(100, mapOppDelayCycles);
+    ConcurrentMap* map2C = new ConcurrentMap(100, mapOppDelayCycles);
+    ConcurrentMap* map3C = new ConcurrentMap(100, mapOppDelayCycles);
+    ConcurrentMap* map4C = new ConcurrentMap(100, mapOppDelayCycles);
 
     stringstream inputStream1C;
     inputStream1C << "N 1\n";

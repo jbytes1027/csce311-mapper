@@ -1,7 +1,5 @@
 #include "Map.h"
 
-#include <semaphore.h>
-
 #include <iostream>
 #include <string>
 
@@ -11,34 +9,23 @@ Node::Node(int key, string value) {
     next = nullptr;
 }
 
-Map::Map(int numBuckets, int oppPaddingCycles) {
-    this->numCyclesToSleepPerOpp = oppPaddingCycles;
+Map::Map(int numBuckets) {
     this->numBuckets = numBuckets;
     buckets = new Node*[numBuckets];
-    sems = new sem_t[numBuckets];
 
-    // Init buckets to nullptr and their sems to 1
     for (int i = 0; i < numBuckets; i++) {
         buckets[i] = nullptr;
-
-        while (sem_init(&sems[i], 0, 1) != 0) {
-            cout << "Error initializing sem\n";
-        }
     }
 }
 
 Map::~Map() {
-    // For every bucket, delete its nodes and its sem
     for (int i = 0; i < numBuckets; i++) {
         while (buckets[i] != nullptr) {
             remove(buckets[i]->key);
         }
-
-        sem_destroy(&sems[i]);
     }
 
     delete buckets;
-    delete sems;
 }
 
 int Map::hash(int value) { return value % numBuckets; }
@@ -107,56 +94,6 @@ bool Map::remove(int key) {
     }
 
     return false;
-}
-
-void Map::lock(int bucket) { sem_wait(&sems[bucket]); }
-
-void Map::unlock(int bucket) { sem_post(&sems[bucket]); }
-
-// Alias for sem_post with error checking
-void Map::signal(sem_t* semSignal) {
-    while (sem_post(semSignal) == -1) {
-        cout << "Error posting sem\n";
-    }
-}
-
-// Spin to demonstrate scaling
-void spin(int numCycles) { for (int i = 0; i < numCycles; i++); }
-
-bool Map::concurrentInsertAndPost(int key, string value, sem_t* semOppStarted) {
-    int bucket = hash(key);
-
-    lock(bucket);
-    // Tell caller opp has started
-    signal(semOppStarted);
-    spin(this->numCyclesToSleepPerOpp);
-    bool result = insert(key, value);
-    unlock(bucket);
-    return result;
-}
-
-string Map::concurrentLookupAndPost(int key, sem_t* semOppStarted) {
-    int bucket = hash(key);
-
-    lock(bucket);
-    // Tell caller opp has started
-    signal(semOppStarted);
-    spin(numCyclesToSleepPerOpp);
-    string result = lookup(key);
-    unlock(bucket);
-    return result;
-}
-
-bool Map::concurrentRemoveAndPost(int key, sem_t* semOppStarted) {
-    int bucket = hash(key);
-
-    lock(bucket);
-    // Tell caller opp has started
-    signal(semOppStarted);
-    spin(numCyclesToSleepPerOpp);
-    bool result = remove(key);
-    unlock(bucket);
-    return result;
 }
 
 // For debugging

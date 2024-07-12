@@ -7,27 +7,13 @@
 #include <string>
 #include <thread>  // for sleeping
 
-#include "Map.h"
+#include "ConcurrentMap.h"
 
 using namespace std;
 
-void post(sem_t* sem) {
-    // try to post until success
-    while (sem_post(sem) == -1) {
-        cout << "Error posting sem\n";
-    }
-}
-
-void wait(sem_t* sem) {
-    // try to wait until success
-    while (sem_wait(sem) == -1) {
-        cout << "Error waiting sem\n";
-    }
-}
-
 // shared state for consumers and producers
 struct mapper_shared_state_t {
-    Map* map;
+    ConcurrentMap* map;
     sem_t semLockRead;
     // used to automically output from consumer
     sem_t semLockOut;
@@ -109,8 +95,8 @@ void* consumeLineThread(void* args) {
         // then release the execution order enforcing lock
         // then figure out what to output
         if (action == 'D') {
-            bool success = state->map->concurrentRemoveAndPost(
-                key, &state->semLockScheduleOpp);
+            bool success =
+                state->map->removeAndPost(key, &state->semLockScheduleOpp);
 
             if (success) {
                 outputLine << "[Success] removed " << key << "\n";
@@ -119,8 +105,8 @@ void* consumeLineThread(void* args) {
                            << ": value not found\n";
             }
         } else if (action == 'L') {
-            string value = state->map->concurrentLookupAndPost(
-                key, &state->semLockScheduleOpp);
+            string value =
+                state->map->lookupAndPost(key, &state->semLockScheduleOpp);
 
             if (value != "") {
                 outputLine << "[Success] Found \"" << value << "\" from key "
@@ -134,7 +120,7 @@ void* consumeLineThread(void* args) {
             int valueLen = valueEnd - valueStart;
             string value = lineToExecute.substr(valueStart, valueLen);
 
-            bool success = state->map->concurrentInsertAndPost(
+            bool success = state->map->insertAndPost(
                 key, value, &state->semLockScheduleOpp);
 
             if (success) {
@@ -176,7 +162,7 @@ void write(stringstream* stream, string pathOutput) {
 
 // runs input stream and returns output in stringstream buffer
 // map argument for testing
-stringstream executeStream(stringstream* streamInput, Map* map) {
+stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
     int numConsumers;
 
     mapper_shared_state_t state;
@@ -194,10 +180,10 @@ stringstream executeStream(stringstream* streamInput, Map* map) {
         stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
 
-    sem_init(&state.semConsumersDone, 0, 0);
-    sem_init(&state.semLockScheduleOpp, 0, 1);
-    sem_init(&state.semLockOut, 0, 1);
-    sem_init(&state.semLockRead, 0, 1);
+    init(&state.semConsumersDone, 0);
+    init(&state.semLockScheduleOpp, 1);
+    init(&state.semLockOut, 1);
+    init(&state.semLockRead, 1);
     state.map = map;
     state.currOppReadIndex = 0;
     state.currOppExecuteIndex = 0;
@@ -227,7 +213,7 @@ stringstream executeStream(stringstream* streamInput, Map* map) {
 }
 
 stringstream executeStream(stringstream* streamInput) {
-    return executeStream(streamInput, new Map());
+    return executeStream(streamInput, new ConcurrentMap());
 }
 
 void executeFile(string pathInput, string pathOutput) {
