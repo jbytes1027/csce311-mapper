@@ -30,51 +30,123 @@ struct mapper_shared_state_t {
     stringstream* outputBuffer;
 };
 
-// consumer that consumes lines given from producer and outputs the result
+enum operation_type_t {
+    INSERT,
+    LOOKUP,
+    DELETE,
+};
+
+struct operation_t {
+    operation_type_t type;
+    int key;
+    string value;
+};
+
+void readlineFromState(mapper_shared_state_t* state,
+                       long unsigned int* readLineIndex, string* readLine) {
+    wait(&state->semLockRead);
+    getline(*state->inputBuffer, *readLine);
+    // store snapshot of index
+    *readLineIndex = state->currOppReadIndex;
+    // increase opp index
+    state->currOppReadIndex++;
+    post(&state->semLockRead);
+}
+
+operation_t parse(string line) {
+    operation_t opp;
+
+    int keyStart = 2;
+    int keyEnd = keyStart;
+    // move forward till end of line (for Lookup or Delete)
+    // or space (for Insert)
+    for (long unsigned int i = keyStart; i <= line.length(); i++) {
+        keyEnd = i;
+        if (i != line.length() && line.at(i) == ' ') {
+            break;
+        }
+    }
+    int keyLen = keyEnd - keyStart;
+    string keyString = line.substr(keyStart, keyLen);
+    opp.key = stoi(keyString);
+
+    switch (line.at(0)) {
+        case 'I':
+            opp.type = INSERT;
+            break;
+        case 'L':
+            opp.type = LOOKUP;
+            break;
+        case 'D':
+            opp.type = DELETE;
+            break;
+    }
+
+    if (opp.type == INSERT) {
+        int valueStart = keyEnd + 2;
+        int valueEnd = line.length() - 1;
+        int valueLen = valueEnd - valueStart;
+        opp.value = line.substr(valueStart, valueLen);
+    }
+
+    return opp;
+}
+
+inline void executeOppAndPost(mapper_shared_state_t* state, operation_t opp,
+                              stringstream* outputLine) {
+    if (opp.type == DELETE) {
+        bool success =
+            state->map->removeAndPost(opp.key, &state->semLockScheduleOpp);
+
+        if (success) {
+            *outputLine << "[Success] removed " << opp.key << "\n";
+        } else {
+            *outputLine << "[Error] failed to remove " << opp.key
+                        << ": value not found\n";
+        }
+    } else if (opp.type == LOOKUP) {
+        string value =
+            state->map->lookupAndPost(opp.key, &state->semLockScheduleOpp);
+
+        if (value != "") {
+            *outputLine << "[Success] Found \"" << value << "\" from key "
+                        << opp.key << "\n";
+        } else {
+            *outputLine << "[Error] failed to locate " << opp.key << "\n";
+        }
+    } else if (opp.type == INSERT) {
+        bool success = state->map->insertAndPost(opp.key, opp.value,
+                                                 &state->semLockScheduleOpp);
+
+        if (success) {
+            *outputLine << "[Success] inserted " << opp.value << " at "
+                        << opp.key << "\n";
+        } else {
+            *outputLine << "[Error] failed to insert " << opp.key << " at "
+                        << opp.value << "\n";
+        }
+    }
+}
+
+// Consumer that consumes lines given from producer and outputs the result
 void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
 
     while (true) {
-        string lineToExecute;
+        long unsigned int readIndex;
+        string readLine;
 
-        // READ INPUT
-        // lock to read one input line at a time
-        wait(&state->semLockRead);
-        // store line
-        getline(*state->inputBuffer, lineToExecute);
-        // store snapshot of index
-        long unsigned int currOppIndex = state->currOppReadIndex;
-        // increase opp index
-        state->currOppReadIndex++;
-        post(&state->semLockRead);
-        // END READ INPUT
+        readlineFromState(state, &readIndex, &readLine);
 
-        // if no lines left to read
-        if (lineToExecute == "") {
-            // signal done
+        // If no lines left to read, signal done and stop
+        if (readLine == "") {
             post(&state->semConsumersDone);
-            // exit
             return 0;
         }
 
-        // PARSE KEY
-        int keyStart = 2;
-        int keyEnd = keyStart;
-        // move forward till end of line (for Lookup or Delete)
-        // or space (for Insert)
-        for (long unsigned int i = keyStart; i <= lineToExecute.length(); i++) {
-            keyEnd = i;
-            if (i != lineToExecute.length() && lineToExecute.at(i) == ' ') {
-                break;
-            }
-        }
-        int keyLen = keyEnd - keyStart;
-        string keyString = lineToExecute.substr(keyStart, keyLen);
-        int key = stoi(keyString);
-        // END PARSE KEY
+        operation_t opp = parse(readLine);
 
         stringstream outputLine;
-        char action = lineToExecute.at(0);
 
         // EXECUTE OPP
         // lock to ensure order of execution: unlocked in map opp call once opp
@@ -84,7 +156,7 @@ void* consumeLineThread(void* args) {
         while (true) {
             wait(&state->semLockScheduleOpp);
             // if its this threads turn to execute; keep lock
-            if (currOppIndex == state->currOppExecuteIndex) break;
+            if (readIndex == state->currOppExecuteIndex) break;
             post(&state->semLockScheduleOpp);  // cycle through waiting
         }
 
@@ -94,43 +166,8 @@ void* consumeLineThread(void* args) {
         // run action on map and wait until the map has started the opp
         // then release the execution order enforcing lock
         // then figure out what to output
-        if (action == 'D') {
-            bool success =
-                state->map->removeAndPost(key, &state->semLockScheduleOpp);
+        executeOppAndPost(state, opp, &outputLine);
 
-            if (success) {
-                outputLine << "[Success] removed " << key << "\n";
-            } else {
-                outputLine << "[Error] failed to remove " << key
-                           << ": value not found\n";
-            }
-        } else if (action == 'L') {
-            string value =
-                state->map->lookupAndPost(key, &state->semLockScheduleOpp);
-
-            if (value != "") {
-                outputLine << "[Success] Found \"" << value << "\" from key "
-                           << key << "\n";
-            } else {
-                outputLine << "[Error] failed to locate " << key << "\n";
-            }
-        } else if (action == 'I') {
-            int valueStart = keyEnd + 2;
-            int valueEnd = lineToExecute.length() - 1;
-            int valueLen = valueEnd - valueStart;
-            string value = lineToExecute.substr(valueStart, valueLen);
-
-            bool success = state->map->insertAndPost(
-                key, value, &state->semLockScheduleOpp);
-
-            if (success) {
-                outputLine << "[Success] inserted " << value << " at " << key
-                           << "\n";
-            } else {
-                outputLine << "[Error] failed to insert " << key << " at "
-                           << value << "\n";
-            }
-        }
         // END EXECUTE OPP
 
         // WRITE OUTPUT
@@ -140,7 +177,7 @@ void* consumeLineThread(void* args) {
         while (true) {
             wait(&state->semLockOut);
             // if its this threads turn to output; keep lock
-            if (currOppIndex == state->oppToOutputIndex) break;
+            if (readIndex == state->oppToOutputIndex) break;
             post(&state->semLockOut);  // cycle through waiting
         }
 
