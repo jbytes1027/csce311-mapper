@@ -205,39 +205,40 @@ void write(stringstream* stream, string pathOutput) {
     fileOutput.close();
 }
 
-// runs input stream and returns output in stringstream buffer
-// map argument for testing
-stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
-    int numConsumers;
-
+mapper_shared_state_t initState(stringstream* streamInput, ConcurrentMap* map, stringstream* outputBuffer) {
     mapper_shared_state_t state;
 
     state.inputBuffer = streamInput;
-    // init the output buffer
-    stringstream outputBuffer;
-    state.outputBuffer = &outputBuffer;
+    state.map = map;
+    state.outputBuffer = outputBuffer;
 
     string threadsInfoLine;
-    // get the first line which contains the number of threads to use
+    // Get the first line which contains the number of threads to use
     getline(*streamInput, threadsInfoLine);
-    // parse the number of consumers to use
-    numConsumers =
+    // Parse the number of consumers to use
+    state.remainingConsumers =
         stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
-    *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
+    *state.outputBuffer << "Using " << state.remainingConsumers << " threads to consume\n";
 
-    state.remainingConsumers = numConsumers;
     init(&state.semRemainingConsumers, 1);
     init(&state.semAllConsumersDone, 0);
     init(&state.semLockScheduleOpp, 1);
     init(&state.semLockOut, 1);
     init(&state.semLockRead, 1);
-    state.map = map;
     state.currOppReadIndex = 0;
     state.currOppExecuteIndex = 0;
     state.oppToOutputIndex = 0;
 
-    // create all consumer threads
-    for (int i = 0; i < numConsumers; i++) {
+    return state;
+}
+
+// runs input stream and returns output in stringstream buffer
+// map argument for testing
+stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
+    stringstream outputBuffer;
+    mapper_shared_state_t state = initState(streamInput, map, &outputBuffer);
+
+    for (int i = state.remainingConsumers; i > 0; i--) {
         pthread_t thread;
         int status =
             pthread_create(&thread, nullptr, consumeLineThread, &state);
