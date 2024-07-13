@@ -1,11 +1,9 @@
 #include <semaphore.h>
 
-#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <thread>  // for sleeping
 
 #include "ConcurrentMap.h"
 
@@ -17,8 +15,10 @@ struct mapper_shared_state_t {
     sem_t semLockRead;
     // used to automically output from consumer
     sem_t semLockOut;
-    // tracks how many threads have stopped running
-    sem_t semConsumersDone;
+    int remainingConsumers;
+    sem_t semRemainingConsumers;
+    // Unlocks when all consumers are done
+    sem_t semAllConsumersDone;
     // used to tell producer that the scheduled opperation has started
     sem_t semLockScheduleOpp;
     // tracks which line the producer is producing
@@ -138,9 +138,17 @@ void* consumeLineThread(void* args) {
 
         readlineFromState(state, &readIndex, &readLine);
 
-        // If no lines left to read, signal done and stop
+        // If no lines left to read
         if (readLine == "") {
-            post(&state->semConsumersDone);
+            wait(&state->semRemainingConsumers);
+
+            state->remainingConsumers -= 1;
+            if (state->remainingConsumers == 0) {
+                // Tells producer consumers are finished so wakeup
+                post(&state->semAllConsumersDone);
+            }
+
+            post(&state->semRemainingConsumers);
             return 0;
         }
 
@@ -217,7 +225,9 @@ stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
         stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << numConsumers << " threads to consume\n";
 
-    init(&state.semConsumersDone, 0);
+    state.remainingConsumers = numConsumers;
+    init(&state.semRemainingConsumers, 1);
+    init(&state.semAllConsumersDone, 0);
     init(&state.semLockScheduleOpp, 1);
     init(&state.semLockOut, 1);
     init(&state.semLockRead, 1);
@@ -237,13 +247,7 @@ stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
         }
     }
 
-    int consumersDone = -1;
-    // check every x ms to see if all threads finished
-    do {
-        sem_getvalue(&state.semConsumersDone, &consumersDone);
-        this_thread::sleep_for(chrono::milliseconds(5));
-        // while not all threads done
-    } while (consumersDone < numConsumers);
+    sem_wait(&state.semAllConsumersDone);
 
     delete state.map;
     return outputBuffer;
