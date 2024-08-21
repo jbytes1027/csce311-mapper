@@ -2,6 +2,18 @@
 
 Mapper is program to concurrently execute map operations read from a file on a concurrent hash map. It was written for an OS class assignment that tested implimenting a bounded-buffer and a concurrent data structure using only concurrency primatives.
 
+## Assignment
+
+The basic assignment requirements were as follows:
+
+- Must correctly execute map operations read from a file
+- Must be thread safe
+- Multi-threaded output must be the same as single-threaded output
+- Performance must increase roughly proportional to threads used (up to the number of cores)
+- Hash map must be able to hold up to 2^22 items
+- Hash map does not have to support rehashing
+- Must write tests
+
 ## Approach
 
 The core of the program is split into two parts `Mapper::executeStream` and `Mapper::consumeLineThread`. `executeStream` takes in the stream of input, initializes everything, creates the consumer threads, waits for them to finish, and returns the resulting output stream. The consumer, `executeStream`, reads a line, parses it, executes it, and adds the result to the output buffer. Semaphores are used to lock reading, executing, and adding to the output buffer. To keep track of the thread's execution and output turn, the current line number is recorded when reading the line. This is used to determine when its a consumers turn to execute and output. The execution is kept ordered by locking until the map locks internally. This is done by passing a semaphore to the map's operation call. Internally the map uses bucket locking to scale. The consumer uses multiple stages and locks because it was found to be faster. When there are no lines left to read a consumer exits. The main thread knows when the consumers are done by checking the value of a semaphore that keeps track of how many consumers have finished. _See `Mapper.cpp` for details and additional comments._
