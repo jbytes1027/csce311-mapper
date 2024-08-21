@@ -128,7 +128,19 @@ inline void executeOppAndPost(mapper_shared_state_t* state, operation_t opp,
     }
 }
 
-// Consumer that consumes lines given from producer and outputs the result
+inline void signalConsumerDone(mapper_shared_state_t*& state) {
+    wait(&state->semRemainingConsumers);
+
+    state->remainingConsumers -= 1;
+    if (state->remainingConsumers == 0) {
+        // Tells producer consumers are finished so wakeup
+        post(&state->semAllConsumersDone);
+    }
+
+    post(&state->semRemainingConsumers);
+}
+
+// Consumes lines produced by producer and outputs the result
 void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
 
@@ -140,15 +152,7 @@ void* consumeLineThread(void* args) {
 
         // If no lines left to read
         if (readLine == "") {
-            wait(&state->semRemainingConsumers);
-
-            state->remainingConsumers -= 1;
-            if (state->remainingConsumers == 0) {
-                // Tells producer consumers are finished so wakeup
-                post(&state->semAllConsumersDone);
-            }
-
-            post(&state->semRemainingConsumers);
+            signalConsumerDone(state);
             return 0;
         }
 
