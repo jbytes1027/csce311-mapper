@@ -71,8 +71,8 @@ bool Map::remove(int key) {
 
     // Start search from the head of the bucket
     Node* currNode = buckets[bucket];
-    // Stores the previously visited node so that when the current node is
-    // removed, the previous node's next pointer can be updated
+    // Stores the previously visited node so that when the current node is removed,
+    // the previous node's next pointer can be updated
     Node* prevNode = nullptr;
     // While not at the end of the bucket
     while (currNode != nullptr) {

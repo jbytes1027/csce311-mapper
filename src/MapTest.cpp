@@ -157,41 +157,31 @@ TEST(ThreadedTest, MapperRandomKeyScaling) {
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream1C = executeStream(&inputStream1C);
     end = chrono::high_resolution_clock::now();
-    int msExec1C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 1 consumer  in "
-         << msExec1C << "ms\n";
+    int msExec1C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 1 consumer  in " << msExec1C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream2C = executeStream(&inputStream2C);
     end = chrono::high_resolution_clock::now();
-    int msExec2C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 2 consumers in "
-         << msExec2C << "ms\n";
+    int msExec2C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 2 consumers in " << msExec2C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream3C = executeStream(&inputStream3C);
     end = chrono::high_resolution_clock::now();
-    int msExec3C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 3 consumers in "
-         << msExec3C << "ms\n";
+    int msExec3C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 3 consumers in " << msExec3C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream4C = executeStream(&inputStream4C);
     end = chrono::high_resolution_clock::now();
-    int msExec4C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 4 consumers in "
-         << msExec4C << "ms\n";
+    int msExec4C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 4 consumers in " << msExec4C << "ms\n";
 
     // test correctness
     // not comprehensive but good enough because stringstreams can't be copied
-    EXPECT_TRUE(
-        isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
-    EXPECT_TRUE(
-        isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
+    EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
+    EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
     // test scaling not speed because speed depends on the pc and whats running
     // in the background
@@ -255,41 +245,31 @@ TEST(ThreadedTest, MapRandomKeyScaling) {
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream1C = executeStream(&inputStream1C, map1C);
     end = chrono::high_resolution_clock::now();
-    int msExec1C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 1 consumer  in "
-         << msExec1C << "ms\n";
+    int msExec1C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 1 consumer  in " << msExec1C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream2C = executeStream(&inputStream2C, map2C);
     end = chrono::high_resolution_clock::now();
-    int msExec2C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 2 consumers in "
-         << msExec2C << "ms\n";
+    int msExec2C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 2 consumers in " << msExec2C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream3C = executeStream(&inputStream3C, map3C);
     end = chrono::high_resolution_clock::now();
-    int msExec3C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 3 consumers in "
-         << msExec3C << "ms\n";
+    int msExec3C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 3 consumers in " << msExec3C << "ms\n";
 
     begin = chrono::high_resolution_clock::now();
     stringstream outputStream4C = executeStream(&inputStream4C, map4C);
     end = chrono::high_resolution_clock::now();
-    int msExec4C =
-        chrono::duration_cast<chrono::milliseconds>(end - begin).count();
-    cout << "Executed " << numOpp << " operations with 4 consumers in "
-         << msExec4C << "ms\n";
+    int msExec4C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+    cout << "Executed " << numOpp << " operations with 4 consumers in " << msExec4C << "ms\n";
 
     // test correctness
     // not comprehensive but good enough because stringstreams can't be copied
-    EXPECT_TRUE(
-        isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
-    EXPECT_TRUE(
-        isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
+    EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
+    EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
     // test scaling not speed because speed depends on the pc and whats running
     // in the background

@@ -42,8 +42,8 @@ struct operation_t {
     string value;
 };
 
-void readlineFromState(mapper_shared_state_t* state,
-                       long unsigned int* readLineIndex, string* readLine) {
+void readlineFromState(mapper_shared_state_t* state, long unsigned int* readLineIndex,
+                       string* readLine) {
     wait(&state->semLockRead);
     getline(*state->inputBuffer, *readLine);
     // store snapshot of index
@@ -58,8 +58,7 @@ operation_t parse(string line) {
 
     int keyStart = 2;
     int keyEnd = keyStart;
-    // move forward till end of line (for Lookup or Delete)
-    // or space (for Insert)
+    // Move forward until the end of the line (for Lookup or Delete) or space (for Insert)
     for (long unsigned int i = keyStart; i <= line.length(); i++) {
         keyEnd = i;
         if (i != line.length() && line.at(i) == ' ') {
@@ -95,35 +94,28 @@ operation_t parse(string line) {
 inline void executeOppAndPost(mapper_shared_state_t* state, operation_t opp,
                               stringstream* outputLine) {
     if (opp.type == DELETE) {
-        bool success =
-            state->map->removeAndPost(opp.key, &state->semLockScheduleOpp);
+        bool success = state->map->removeAndPost(opp.key, &state->semLockScheduleOpp);
 
         if (success) {
             *outputLine << "[Success] removed " << opp.key << "\n";
         } else {
-            *outputLine << "[Error] failed to remove " << opp.key
-                        << ": value not found\n";
+            *outputLine << "[Error] failed to remove " << opp.key << ": value not found\n";
         }
     } else if (opp.type == LOOKUP) {
-        string value =
-            state->map->lookupAndPost(opp.key, &state->semLockScheduleOpp);
+        string value = state->map->lookupAndPost(opp.key, &state->semLockScheduleOpp);
 
         if (value != "") {
-            *outputLine << "[Success] Found \"" << value << "\" from key "
-                        << opp.key << "\n";
+            *outputLine << "[Success] Found \"" << value << "\" from key " << opp.key << "\n";
         } else {
             *outputLine << "[Error] failed to locate " << opp.key << "\n";
         }
     } else if (opp.type == INSERT) {
-        bool success = state->map->insertAndPost(opp.key, opp.value,
-                                                 &state->semLockScheduleOpp);
+        bool success = state->map->insertAndPost(opp.key, opp.value, &state->semLockScheduleOpp);
 
         if (success) {
-            *outputLine << "[Success] inserted " << opp.value << " at "
-                        << opp.key << "\n";
+            *outputLine << "[Success] inserted " << opp.value << " at " << opp.key << "\n";
         } else {
-            *outputLine << "[Error] failed to insert " << opp.key << " at "
-                        << opp.value << "\n";
+            *outputLine << "[Error] failed to insert " << opp.key << " at " << opp.value << "\n";
         }
     }
 }
@@ -209,7 +201,8 @@ void write(stringstream* stream, string pathOutput) {
     fileOutput.close();
 }
 
-mapper_shared_state_t initState(stringstream* streamInput, ConcurrentMap* map, stringstream* outputBuffer) {
+mapper_shared_state_t initState(stringstream* streamInput, ConcurrentMap* map,
+                                stringstream* outputBuffer) {
     mapper_shared_state_t state;
 
     state.inputBuffer = streamInput;
@@ -220,8 +213,7 @@ mapper_shared_state_t initState(stringstream* streamInput, ConcurrentMap* map, s
     // Get the first line which contains the number of threads to use
     getline(*streamInput, threadsInfoLine);
     // Parse the number of consumers to use
-    state.remainingConsumers =
-        stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
+    state.remainingConsumers = stoi(threadsInfoLine.substr(2, threadsInfoLine.length() - 2));
     *state.outputBuffer << "Using " << state.remainingConsumers << " threads to consume\n";
 
     init(&state.semRemainingConsumers, 1);
@@ -244,8 +236,7 @@ stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
 
     for (int i = state.remainingConsumers; i > 0; i--) {
         pthread_t thread;
-        int status =
-            pthread_create(&thread, nullptr, consumeLineThread, &state);
+        int status = pthread_create(&thread, nullptr, consumeLineThread, &state);
         if (status != 0) {
             cout << "Error starting thread\n";
             return outputBuffer;

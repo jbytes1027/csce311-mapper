@@ -2,8 +2,7 @@
 
 #include "Semaphore.h"
 
-ConcurrentMap::ConcurrentMap(int numBuckets, int oppPaddingCycles)
-    : Map(numBuckets) {
+ConcurrentMap::ConcurrentMap(int numBuckets, int oppPaddingCycles) : Map(numBuckets) {
     this->numCyclesToSleepPerOpp = oppPaddingCycles;
     sems = new sem_t[numBuckets];
 
