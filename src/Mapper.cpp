@@ -53,13 +53,12 @@ struct operation_t {
     string value;
 };
 
-void readlineFromState(mapper_shared_state_t* state, long unsigned int* readLineIndex,
-                       string* readLine) {
-    wait(&state->semLockRead);
-    getline(*state->inputBuffer, *readLine);
-    // store snapshot of index
-    *readLineIndex = state->currOppReadIndex;
-    // increase opp index
+inline void consumeLine(mapper_shared_state_t* state, long unsigned int* consumedLineIndex,
+                        string* consumedLine) {
+    while (sem_trywait(&state->semLockRead) != 0);
+    getline(*state->inputBuffer, *consumedLine);
+    // Store a snapshot of the index
+    *consumedLineIndex = state->currOppReadIndex;
     state->currOppReadIndex++;
     post(&state->semLockRead);
 }
@@ -104,8 +103,14 @@ operation_t parse(string line) {
 }
 
 // Run an operation on map and return the output
-inline void executeOppAndPost(mapper_shared_state_t* state, operation_t opp,
-                              stringstream* outputLine) {
+inline void executeOperation(mapper_shared_state_t* state, operation_t opp,
+                             stringstream* outputLine) {
+    // Lock to ensure order of execution.
+    // Lock is unlocked from map when it has an internal lock
+    wait(&state->semLockScheduleOpp);
+    // Increment so that next operation can run after lock is released
+    state->currOppExecuteIndex++;
+
     if (opp.type == DELETE) {
         bool success = state->map->removeAndPost(opp.key, &state->semLockScheduleOpp);
 
@@ -146,8 +151,12 @@ inline void signalConsumerDone(mapper_shared_state_t*& state) {
 }
 
 inline void writeToOutput(mapper_shared_state_t*& state, string outputLine) {
+    wait(&state->semLockOut);
+
     *(state->outputBuffer) << outputLine;
     state->oppToOutputIndex++;
+
+    post(&state->semLockOut);
 }
 
 // Consumes lines produced by producer and outputs the result
@@ -155,40 +164,27 @@ void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
 
     while (true) {
-        long unsigned int readIndex;
-        string readLine;
-
-        readlineFromState(state, &readIndex, &readLine);
+        long unsigned int consumedIndex;
+        string consumedLine;
+        consumeLine(state, &consumedIndex, &consumedLine);
 
         // If no lines left to read
-        if (readLine == "") {
+        if (consumedLine == "") {
             signalConsumerDone(state);
             return 0;
         }
 
-        operation_t opp = parse(readLine);
+        operation_t opp = parse(consumedLine);
 
         stringstream outputLine;
 
-        while (true) {
-            wait(&state->semLockScheduleOpp);
-            // if its this threads turn to execute; keep lock
-            if (readIndex == state->currOppExecuteIndex) break;
-            post(&state->semLockScheduleOpp);  // cycle through waiting
-        }
+        // Wait for right turn to execute
+        while (consumedIndex != state->currOppExecuteIndex);
+        executeOperation(state, opp, &outputLine);
 
-        state->currOppExecuteIndex++;
-        executeOppAndPost(state, opp, &outputLine);
-
-        while (true) {
-            wait(&state->semLockOut);
-            // if its this threads turn to output; keep lock
-            if (readIndex == state->oppToOutputIndex) break;
-            post(&state->semLockOut);  // cycle through waiting
-        }
+        // Wait for right turn to output
+        while (consumedIndex != state->oppToOutputIndex);
         writeToOutput(state, outputLine.str());
-
-        post(&state->semLockOut);
     }
 }
 
