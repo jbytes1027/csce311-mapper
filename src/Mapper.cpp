@@ -145,6 +145,11 @@ inline void signalConsumerDone(mapper_shared_state_t*& state) {
     post(&state->semRemainingConsumers);
 }
 
+inline void writeToOutput(mapper_shared_state_t*& state, string outputLine) {
+    *(state->outputBuffer) << outputLine;
+    state->oppToOutputIndex++;
+}
+
 // Consumes lines produced by producer and outputs the result
 void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
@@ -181,12 +186,9 @@ void* consumeLineThread(void* args) {
             if (readIndex == state->oppToOutputIndex) break;
             post(&state->semLockOut);  // cycle through waiting
         }
+        writeToOutput(state, outputLine.str());
 
-        // Flush the output
-        *(state->outputBuffer) << outputLine.str();
-        state->oppToOutputIndex++;
         post(&state->semLockOut);
-        // END WRITE OUTPUT
     }
 }
 
