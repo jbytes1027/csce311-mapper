@@ -9,24 +9,35 @@
 
 using namespace std;
 
-// shared state for consumers and producers
+// Shared state for consumers and producers
 struct mapper_shared_state_t {
     ConcurrentMap* map;
+
     sem_t semLockRead;
-    // used to automically output from consumer
+
+    // Used to automatically output from consumer
     sem_t semLockOut;
+
     int remainingConsumers;
+
     sem_t semRemainingConsumers;
+
     // Unlocks when all consumers are done
     sem_t semAllConsumersDone;
-    // used to tell producer that the scheduled opperation has started
+
+    // Used to tell producer that the scheduled operation has started
     sem_t semLockScheduleOpp;
-    // tracks which line the producer is producing
+
+    // Tracks which line the producer is producing
     long unsigned int currOppReadIndex;
+
     long unsigned int currOppExecuteIndex;
-    // tracks which opperation to output next
+
+    // Tracks which operation to output next
     long unsigned int oppToOutputIndex;
+
     stringstream* inputBuffer;
+
     stringstream* outputBuffer;
 };
 
@@ -82,6 +93,7 @@ operation_t parse(string line) {
     }
 
     if (opp.type == INSERT) {
+        // Get the value to insert
         int valueStart = keyEnd + 2;
         int valueEnd = line.length() - 1;
         int valueLen = valueEnd - valueStart;
@@ -91,6 +103,7 @@ operation_t parse(string line) {
     return opp;
 }
 
+// Run an operation on map and return the output
 inline void executeOppAndPost(mapper_shared_state_t* state, operation_t opp,
                               stringstream* outputLine) {
     if (opp.type == DELETE) {
@@ -152,11 +165,6 @@ void* consumeLineThread(void* args) {
 
         stringstream outputLine;
 
-        // EXECUTE OPP
-        // lock to ensure order of execution: unlocked in map opp call once opp
-        // has started and map has internal lock
-        // wait until turn to execute by moving through every thread and
-        // seeing if it is their turn to output
         while (true) {
             wait(&state->semLockScheduleOpp);
             // if its this threads turn to execute; keep lock
@@ -164,20 +172,9 @@ void* consumeLineThread(void* args) {
             post(&state->semLockScheduleOpp);  // cycle through waiting
         }
 
-        // inc because curr index is about to execute (and locked until it does)
         state->currOppExecuteIndex++;
-
-        // run action on map and wait until the map has started the opp
-        // then release the execution order enforcing lock
-        // then figure out what to output
         executeOppAndPost(state, opp, &outputLine);
 
-        // END EXECUTE OPP
-
-        // WRITE OUTPUT
-        // lock to ensure order of output
-        // wait until turn to output by moving through every thread and
-        // seeing if it is their turn to output
         while (true) {
             wait(&state->semLockOut);
             // if its this threads turn to output; keep lock
@@ -185,9 +182,8 @@ void* consumeLineThread(void* args) {
             post(&state->semLockOut);  // cycle through waiting
         }
 
-        // flush output
+        // Flush the output
         *(state->outputBuffer) << outputLine.str();
-        // increment flush turn
         state->oppToOutputIndex++;
         post(&state->semLockOut);
         // END WRITE OUTPUT
@@ -228,8 +224,8 @@ mapper_shared_state_t initState(stringstream* streamInput, ConcurrentMap* map,
     return state;
 }
 
-// runs input stream and returns output in stringstream buffer
-// map argument for testing
+// Runs the input stream and returns output in stringstream buffer
+// Argument map is for testing
 stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
     stringstream outputBuffer;
     mapper_shared_state_t state = initState(streamInput, map, &outputBuffer);
