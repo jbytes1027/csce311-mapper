@@ -38,53 +38,52 @@ bool isOutputEqualWithoutThreadCount(stringstream* s1, stringstream* s2) {
 }
 
 TEST_F(ThreadlessTest, Insert) {
-    EXPECT_TRUE(map->insert(0, "a"));    // test ins to empty bucket
-    EXPECT_TRUE(map->insert(10, "b"));   // test ins to non-empty bucket
-    EXPECT_FALSE(map->insert(10, "c"));  // test ins duplicate
+    EXPECT_TRUE(map->insert(0, "a"));    // Test insertion into a empty bucket
+    EXPECT_TRUE(map->insert(10, "b"));   // Test insertion into a non-empty bucket
+    EXPECT_FALSE(map->insert(10, "c"));  // Test inserting a duplicate
 
     EXPECT_EQ(map->lookup(0), "a");
     EXPECT_EQ(map->lookup(10), "b");
 }
 
 TEST_F(ThreadlessTest, Remove) {
-    EXPECT_TRUE(map->insert(0, "a"));    // ins to empty bucket
-    EXPECT_TRUE(map->insert(10, "b"));   // ins to non-empty bucket
-    EXPECT_TRUE(map->insert(100, "c"));  // ins to non-empty bucket
+    EXPECT_TRUE(map->insert(0, "a"));    // Insertion into a empty bucket
+    EXPECT_TRUE(map->insert(10, "b"));   // Insertion into a non-empty bucket
+    EXPECT_TRUE(map->insert(100, "c"));  // Insertion into a non-empty bucket
     // bucket0: c -> b -> a
 
-    EXPECT_FALSE(map->remove(1000));  // test remove non-existant
+    EXPECT_FALSE(map->remove(1000));  // Test removing a non-existent key
     EXPECT_EQ(map->lookup(0), "a");
     EXPECT_EQ(map->lookup(10), "b");
     EXPECT_EQ(map->lookup(100), "c");
 
-    EXPECT_TRUE(map->remove(10));  // test remove middle
+    EXPECT_TRUE(map->remove(10));  // Test removing a middle node
     EXPECT_EQ(map->lookup(0), "a");
     EXPECT_EQ(map->lookup(10), "");
     EXPECT_EQ(map->lookup(100), "c");
 
-    EXPECT_TRUE(map->remove(100));  // test remove tail
+    EXPECT_TRUE(map->remove(100));  // Test removing a tail node
     EXPECT_EQ(map->lookup(0), "a");
     EXPECT_EQ(map->lookup(100), "");
 
-    EXPECT_TRUE(map->remove(0));  // test remove head
+    EXPECT_TRUE(map->remove(0));  // Test removing a head node
     EXPECT_EQ(map->lookup(0), "");
 }
 
 TEST_F(ThreadlessTest, Lookup) {
-    EXPECT_TRUE(map->insert(0, "a"));    // ins to empty bucket
-    EXPECT_TRUE(map->insert(10, "b"));   // ins to non-empty bucket
-    EXPECT_TRUE(map->insert(100, "c"));  // ins to non-empty bucket
+    EXPECT_TRUE(map->insert(0, "a"));    // Insertion into a empty bucket
+    EXPECT_TRUE(map->insert(10, "b"));   // Insertion into a non-empty bucket
+    EXPECT_TRUE(map->insert(100, "c"));  // Insertion into a non-empty bucket
     // bucket0: c -> b -> a
 
-    EXPECT_EQ(map->lookup(0), "a");    // lookup tail
-    EXPECT_EQ(map->lookup(10), "b");   // lookup middle
-    EXPECT_EQ(map->lookup(100), "c");  // lookup head
+    EXPECT_EQ(map->lookup(0), "a");    // Lookup tail
+    EXPECT_EQ(map->lookup(10), "b");   // Lookup middle
+    EXPECT_EQ(map->lookup(100), "c");  // Lookup head
 
-    EXPECT_EQ(map->lookup(0), "a");  // lookup existing
-    // lookup non-existing in bucket with non-empty bucket
-    EXPECT_EQ(map->lookup(1000), "");
+    EXPECT_EQ(map->lookup(0), "a");    // Lookup existing
+    EXPECT_EQ(map->lookup(1000), "");  // Lookup non-existing in bucket with non-empty bucket
 
-    EXPECT_EQ(map->lookup(1), "");  // lookup non-existing in null bucket
+    EXPECT_EQ(map->lookup(1), "");  // Lookup non-existing in null bucket
 }
 
 TEST(ThreadedTest, StressTest) {
@@ -178,13 +177,12 @@ TEST(ThreadedTest, MapperRandomKeyScaling) {
     int msExec4C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 4 consumers in " << msExec4C << "ms\n";
 
-    // test correctness
-    // not comprehensive but good enough because stringstreams can't be copied
+    // Test correctness
+    // Not comprehensive but good enough because stringstreams can't be copied
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
-    // test scaling not speed because speed depends on the pc and whats running
-    // in the background
+    // Test scaling
     // 2 consumers is faster than 1 consumer
     EXPECT_GT((double)msExec1C / (double)msExec2C, 1);
     // 3 consumers is faster than 1 consumer
@@ -192,8 +190,8 @@ TEST(ThreadedTest, MapperRandomKeyScaling) {
 }
 
 TEST(ThreadedTest, MapRandomKeyScaling) {
-    // add a delay to map operations to demonstrate map scaling
-    // this makes the ordering less of the overall runtime
+    // Add a delay to map operations to demonstrate map scaling
+    // This makes the map operation runtime dwarf the runtime of the ordering logic
     int mapOppDelayCycles = 40000;
     ConcurrentMap* map1C = new ConcurrentMap(100, mapOppDelayCycles);
     ConcurrentMap* map2C = new ConcurrentMap(100, mapOppDelayCycles);
@@ -266,13 +264,12 @@ TEST(ThreadedTest, MapRandomKeyScaling) {
     int msExec4C = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
     cout << "Executed " << numOpp << " operations with 4 consumers in " << msExec4C << "ms\n";
 
-    // test correctness
-    // not comprehensive but good enough because stringstreams can't be copied
+    // Test correctness
+    // Not comprehensive but good enough because stringstreams can't be copied
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream1C, &outputStream2C));
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&outputStream3C, &outputStream4C));
 
-    // test scaling not speed because speed depends on the pc and whats running
-    // in the background
+    // Test scaling
     // 4 consumers is x times faster than 1 consumer
     EXPECT_GT((double)msExec1C / (double)msExec4C, 2.5);
 }
