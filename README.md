@@ -1,5 +1,6 @@
 # Mapper
 
+Mapper is program to concurrently execute map operations read from a file on a concurrent hash map. It was written for an OS class assignment that tested implimenting a bounded-buffer and a concurrent data structure using only concurrency primatives.
 
 ## Approach
 
