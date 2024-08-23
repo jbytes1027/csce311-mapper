@@ -46,18 +46,18 @@ To compile create and enter a build directory:
 
     mkdir build && cd build
 
-To create a makefile for building, run from the build directory:
+To create a makefile for building, from the build directory run:
 
     cmake ..
 
-To build:
+To build, run:
 
     make
 
-To test:
+To test, run:
 
     ./mapper-test
 
-To run:
+To run, use:
 
     ./mapper [INPUT FILE...] [OUTPUT FILE...]
