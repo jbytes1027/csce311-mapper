@@ -228,7 +228,6 @@ stringstream executeStream(stringstream* streamInput, ConcurrentMap* map) {
     stringstream outputBuffer;
     mapper_shared_state_t state = initState(streamInput, map, &outputBuffer);
 
-    cout << "Starting " << state.remainingConsumers << " consumer threads\n";
     for (int i = state.remainingConsumers; i > 0; i--) {
         pthread_t thread;
         int status = pthread_create(&thread, nullptr, consumeLineThread, &state);
