@@ -16,11 +16,20 @@ The basic assignment requirements were as follows:
 
 ## Approach
 
-The core of the program is split into two parts `Mapper::executeStream` and `Mapper::consumeLineThread`. `executeStream` takes in the stream of input, initializes everything, creates the consumer threads, waits for them to finish, and returns the resulting output stream. The consumer, `executeStream`, reads a line, parses it, executes it, and adds the result to the output buffer. Semaphores are used to lock reading, executing, and adding to the output buffer. To keep track of the thread's execution and output turn, the current line number is recorded when reading the line. This is used to determine when its a consumers turn to execute and output. The execution is kept ordered by locking until the map locks internally. This is done by passing a semaphore to the map's operation call. Internally the map uses bucket locking to scale. The consumer uses multiple stages and locks because it was found to be faster. When there are no lines left to read a consumer exits. The main thread knows when the consumers are done by checking the value of a semaphore that keeps track of how many consumers have finished. _See `Mapper.cpp` for details and additional comments._
+The program reads an input, loads a file into memory, starts several consumers threads, waits for all the file's instructions to be executed, and writes the resulting buffer to a file.
 
-## Testing Approach
+A consumer thread is an endless loop that keeps executing instructions until there are none left. The loop has four stages:
 
-For testing, the map's correctness and scaling are tested. Speed is not tested because it varies from local machine to lab machine and background programs. The correctness of the map operations without threading is tested to ensure the basic logic is sound. For all the multi threaded tests the multi-threaded execution result is compared to a single threaded execution result to ensure output is correct and ordered. By repeatedly inserting, deleting, and looking up the same key with a large number of threads, mapper is stress tested to ensure there are no locking or ordering error. Scaling for mapper is tested by generating input with random keys, timing the execution length for one, two, three, and for consumers and comparing the ratio between one consumer and x consumers. The map is also tested for scaling in the same manner except that a delay is added to every map operations so that the operation time outweighs the overhead from ordering the input and output. _See `MapTest.cpp` for details and additional comments._
+1. Read the next instruction line from the instructions file
+2. Parse the instruction from the line
+3. Execute the instruction on a concurrent hash map
+4. Write the result to a shared buffer
+
+Locked tasks are broken up into small segments to improve concurrency scaling. For instance, the reading, executing, and writing segments lock separately. Also the hash map uses bucket locking to ensure only the segment an operation is accessing is locked.
+
+Additionally, locks are held for as short a time as possible to improve concurrency scaling. Steps like parsing and memory allocation were moved out of locked sections, which resulted in greatly increased concurrency.
+
+To ensure ordering of operations, each consumer records the line number of the instruction line it read. This number is used to ensure the execute and write operations are carried out at the right time.
 
 ## Performance and Scaling
 
