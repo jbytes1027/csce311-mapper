@@ -110,6 +110,84 @@ TEST(ThreadedTest, StressTest) {
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&treatOutput, &controlOutput));
 }
 
+TEST(ThreadedTest, MapperRandomKeyScalingTimer) {
+    int consumerThreads = 20;
+    int numOpp = 4194304;  // 2^22
+
+    std::mt19937 randGen;
+    randGen.seed(time(nullptr));
+
+    for (int threads = 1; threads <= consumerThreads; threads++) {
+        stringstream inputStream;
+        inputStream << "N " << threads << "\n";
+
+        for (int i = 0; i < numOpp; i++) {
+            int opp = randGen() % 3;
+            int key = randGen() % 1000;
+
+            if (opp == 0) {
+                inputStream << "I " << key << " \"asdf\"\n";
+            } else if (opp == 1) {
+                inputStream << "L " << key << "\n";
+            } else if (opp == 2) {
+                inputStream << "D " << key << "\n";
+            }
+        }
+
+        // https://stackoverflow.com/questions/22387586/measuring-execution-time-of-a-function-in-c
+        chrono::system_clock::time_point begin;
+        chrono::system_clock::time_point end;
+
+        begin = chrono::high_resolution_clock::now();
+        stringstream outputStream = executeStream(&inputStream);
+        end = chrono::high_resolution_clock::now();
+        int msExec = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+        cout << "Executed " << numOpp << " operations with " << threads << " consumer(s) in "
+             << msExec << "ms\n";
+    }
+}
+
+TEST(ThreadedTest, MapRandomKeyScalingTimer) {
+    int consumerThreads = 20;
+    int mapOppDelayCycles = 40000;
+    int numOpp = 10000;
+    int buckets = 1000;
+
+    std::mt19937 randGen;
+    randGen.seed(time(nullptr));
+
+    for (int threads = 1; threads <= consumerThreads; threads++) {
+        stringstream inputStream;
+        inputStream << "N " << threads << "\n";
+
+        ConcurrentMap* map = new ConcurrentMap(buckets, mapOppDelayCycles);
+
+        for (int i = 0; i < numOpp; i++) {
+            int opp = randGen() % 3;
+            int key = randGen() % 1000;
+
+            if (opp == 0) {
+                inputStream << "I " << key << " \"asdf\"\n";
+            } else if (opp == 1) {
+                inputStream << "L " << key << "\n";
+            } else if (opp == 2) {
+                inputStream << "D " << key << "\n";
+            }
+        }
+
+        // https://stackoverflow.com/questions/22387586/measuring-execution-time-of-a-function-in-c
+        chrono::system_clock::time_point begin;
+        chrono::system_clock::time_point end;
+
+        begin = chrono::high_resolution_clock::now();
+        stringstream outputStream = executeStream(&inputStream, map);
+        end = chrono::high_resolution_clock::now();
+        int msExec = chrono::duration_cast<chrono::milliseconds>(end - begin).count();
+        cout << "Executed " << numOpp << " operations with " << threads << " consumer(s) in "
+             << msExec << "ms\n";
+    }
+}
+
 TEST(ThreadedTest, MapperRandomKeyScaling) {
     stringstream inputStream1C;
     inputStream1C << "N 1\n";
