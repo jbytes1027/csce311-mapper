@@ -63,9 +63,7 @@ inline void readLine(mapper_shared_state_t* state, long unsigned int* lineReadIn
     post(&state->semLockRead);
 }
 
-operation_t parse(string line) {
-    operation_t opp;
-
+inline void parse(string line, operation_t* opp) {
     int keyStart = 2;
     int keyEnd = keyStart;
     // Move forward until the end of the line (for Lookup or Delete) or space (for Insert)
@@ -77,29 +75,27 @@ operation_t parse(string line) {
     }
     int keyLen = keyEnd - keyStart;
     string keyString = line.substr(keyStart, keyLen);
-    opp.key = stoi(keyString);
+    opp->key = stoi(keyString);
 
     switch (line.at(0)) {
         case 'I':
-            opp.type = INSERT;
+            opp->type = INSERT;
             break;
         case 'L':
-            opp.type = LOOKUP;
+            opp->type = LOOKUP;
             break;
         case 'D':
-            opp.type = DELETE;
+            opp->type = DELETE;
             break;
     }
 
-    if (opp.type == INSERT) {
+    if (opp->type == INSERT) {
         // Get the value to insert
         int valueStart = keyEnd + 2;
         int valueEnd = line.length() - 1;
         int valueLen = valueEnd - valueStart;
-        opp.value = line.substr(valueStart, valueLen);
+        opp->value = line.substr(valueStart, valueLen);
     }
-
-    return opp;
 }
 
 // Run an operation on map and return the output
@@ -163,6 +159,7 @@ inline void writeToOutput(mapper_shared_state_t*& state, string outputLine) {
 void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
     string outputLine;
+    operation_t opp;
 
     while (true) {
         long unsigned int lineReadIndex;
@@ -175,7 +172,7 @@ void* consumeLineThread(void* args) {
             return 0;
         }
 
-        operation_t opp = parse(lineRead);
+        parse(lineRead, &opp);
 
         // Wait for right turn to execute
         while (lineReadIndex != state->currOppExecuteIndex);
