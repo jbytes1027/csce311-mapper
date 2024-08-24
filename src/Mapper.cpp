@@ -172,10 +172,9 @@ void* consumeLineThread(void* args) {
             return 0;
         }
 
-        parse(lineRead, &opp);
-
         // Wait for right turn to execute
         while (lineReadIndex != state->currOppExecuteIndex);
+        parse(lineRead, &opp);
         executeOperation(state, opp, &outputLine);
 
         // Wait for right turn to output
