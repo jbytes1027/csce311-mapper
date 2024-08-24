@@ -53,12 +53,12 @@ struct operation_t {
     string value;
 };
 
-inline void consumeLine(mapper_shared_state_t* state, long unsigned int* consumedLineIndex,
-                        string* consumedLine) {
+inline void readLine(mapper_shared_state_t* state, long unsigned int* lineReadIndex,
+                        string* lineRead) {
     while (sem_trywait(&state->semLockRead) != 0);
-    getline(*state->inputBuffer, *consumedLine);
+    getline(*state->inputBuffer, *lineRead);
     // Store a snapshot of the index
-    *consumedLineIndex = state->currOppReadIndex;
+    *lineReadIndex = state->currOppReadIndex;
     state->currOppReadIndex++;
     post(&state->semLockRead);
 }
@@ -164,26 +164,26 @@ void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
 
     while (true) {
-        long unsigned int consumedIndex;
-        string consumedLine;
-        consumeLine(state, &consumedIndex, &consumedLine);
+        long unsigned int lineReadIndex;
+        string lineRead;
+        readLine(state, &lineReadIndex, &lineRead);
 
         // If no lines left to read
-        if (consumedLine == "") {
+        if (lineRead == "") {
             signalConsumerDone(state);
             return 0;
         }
 
-        operation_t opp = parse(consumedLine);
+        operation_t opp = parse(lineRead);
 
         stringstream outputLine;
 
         // Wait for right turn to execute
-        while (consumedIndex != state->currOppExecuteIndex);
+        while (lineReadIndex != state->currOppExecuteIndex);
         executeOperation(state, opp, &outputLine);
 
         // Wait for right turn to output
-        while (consumedIndex != state->oppToOutputIndex);
+        while (lineReadIndex != state->oppToOutputIndex);
         writeToOutput(state, outputLine.str());
     }
 }
