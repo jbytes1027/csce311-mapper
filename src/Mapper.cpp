@@ -104,7 +104,7 @@ operation_t parse(string line) {
 
 // Run an operation on map and return the output
 inline void executeOperation(mapper_shared_state_t* state, operation_t opp,
-                             stringstream* outputLine) {
+                             string* outputLine) {
     // Lock to ensure order of execution.
     // Lock is unlocked from map when it has an internal lock
     wait(&state->semLockScheduleOpp);
@@ -115,25 +115,25 @@ inline void executeOperation(mapper_shared_state_t* state, operation_t opp,
         bool success = state->map->removeAndPost(opp.key, &state->semLockScheduleOpp);
 
         if (success) {
-            *outputLine << "[Success] removed " << opp.key << "\n";
+            *outputLine + "[Success] removed " + to_string(opp.key) + "\n";
         } else {
-            *outputLine << "[Error] failed to remove " << opp.key << ": value not found\n";
+            *outputLine + "[Error] failed to remove " + to_string(opp.key) + ": value not found\n";
         }
     } else if (opp.type == LOOKUP) {
         string value = state->map->lookupAndPost(opp.key, &state->semLockScheduleOpp);
 
         if (value != "") {
-            *outputLine << "[Success] Found \"" << value << "\" from key " << opp.key << "\n";
+            *outputLine + "[Success] Found \"" + value + "\" from key " + to_string(opp.key) + "\n";
         } else {
-            *outputLine << "[Error] failed to locate " << opp.key << "\n";
+            *outputLine + "[Error] failed to locate " + to_string(opp.key) + "\n";
         }
     } else if (opp.type == INSERT) {
         bool success = state->map->insertAndPost(opp.key, opp.value, &state->semLockScheduleOpp);
 
         if (success) {
-            *outputLine << "[Success] inserted " << opp.value << " at " << opp.key << "\n";
+            *outputLine + "[Success] inserted " + opp.value + " at " + to_string(opp.key) + "\n";
         } else {
-            *outputLine << "[Error] failed to insert " << opp.key << " at " << opp.value << "\n";
+            *outputLine + "[Error] failed to insert " + to_string(opp.key) + " at " + opp.value + "\n";
         }
     }
 }
@@ -162,6 +162,7 @@ inline void writeToOutput(mapper_shared_state_t*& state, string outputLine) {
 // Consumes lines produced by producer and outputs the result
 void* consumeLineThread(void* args) {
     mapper_shared_state_t* state = (mapper_shared_state_t*)args;
+    string outputLine;
 
     while (true) {
         long unsigned int lineReadIndex;
@@ -176,15 +177,13 @@ void* consumeLineThread(void* args) {
 
         operation_t opp = parse(lineRead);
 
-        stringstream outputLine;
-
         // Wait for right turn to execute
         while (lineReadIndex != state->currOppExecuteIndex);
         executeOperation(state, opp, &outputLine);
 
         // Wait for right turn to output
         while (lineReadIndex != state->oppToOutputIndex);
-        writeToOutput(state, outputLine.str());
+        writeToOutput(state, outputLine);
     }
 }
 
