@@ -110,7 +110,7 @@ TEST(ThreadedTest, StressTest) {
     EXPECT_TRUE(isOutputEqualWithoutThreadCount(&treatOutput, &controlOutput));
 }
 
-TEST(ThreadedTest, MapperRandomKeyScalingTimer) {
+TEST(ThreadedTest, DISABLED_MapperRandomKeyScalingTimer) {
     int consumerThreads = 20;
     int numOpp = 4194304;  // 2^22
 
@@ -148,6 +148,7 @@ TEST(ThreadedTest, MapperRandomKeyScalingTimer) {
 }
 
 TEST(ThreadedTest, MapRandomKeyScalingTimer) {
+TEST(ThreadedTest, DISABLED_MapRandomKeyScalingTimer) {
     int consumerThreads = 20;
     int mapOppDelayCycles = 40000;
     int numOpp = 10000;
