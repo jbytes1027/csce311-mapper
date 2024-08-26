@@ -63,10 +63,14 @@ Over 95% of the program's runtime is spent on the consumer. With more consumer t
 How the different parts of the consumer scale can be seen by comparing the [flame graph](https://brendangregg.com/flamegraphs.html) of one consumer to the flame graph of eight consumers.
 
 <p align="center">
-  <img src="https://miscfiles.blob.core.windows.net/csce311-lab3/one_thread.svg">
+  <a href="https://miscfiles.blob.core.windows.net/csce311-lab3/one_thread.svg">
+    <img src="https://miscfiles.blob.core.windows.net/csce311-lab3/one_thread.svg">
+  </a>
 </p>
 <p align="center">
-  <img src="https://miscfiles.blob.core.windows.net/csce311-lab3/eight_threads.svg">
+  <a href="https://miscfiles.blob.core.windows.net/csce311-lab3/eight_threads.svg">
+    <img src="https://miscfiles.blob.core.windows.net/csce311-lab3/eight_threads.svg">
+  </a>
 </p>
 
 Note that the large empty space above `consumeLineThread` is from spin locking.
