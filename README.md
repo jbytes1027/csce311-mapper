@@ -31,7 +31,7 @@ To ensure ordering of operations, each consumer records the line number of the i
 
 ## Hash Map Scaling
 
-Without the overhead of reading, parsing, and writing results, executing operations on the hash map scales very well. Executing 2^22 insertions with random keys on a 1000-bucket hash map yields the following results:
+Without the overhead of reading, parsing, and writing results, executing operations on the hash map scales very well. Executing 2^22 operations with random keys on a 1000-bucket hash map yields the following results:
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/68b83c0f-ace6-4ff2-8459-adf4e70f6fb4">
@@ -44,7 +44,6 @@ $$ \frac{\text{Serial execution time of x operations}}{\text{Threads}} $$
 However, due to the overhead of locking, the actual measured time was about:
 
 $$ \frac{\text{Serial execution time of x operations}}{\text{Threads}^{0.94}} $$
-
 
 This formula works up until 9 consumer threads are used, at which point a jump occurs and the rate of decrease becomes linear. This change happens because the last 8 threads were run on virtual cores. The benchmark was run on a machine with 8 physical cores and 16 virtual cores.
 
