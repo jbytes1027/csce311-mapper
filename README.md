@@ -1,6 +1,6 @@
 # Mapper
 
-Mapper is program to concurrently execute map operations read from a file on a concurrent hash map. It was written for an OS class assignment that tested implementing a bounded-buffer and a concurrent data structure using only concurrency primitives.
+Mapper is a program to concurrently execute map operations read from a file on a concurrent hash map. It was written for an OS class assignment that tested implementing a bounded-buffer and a concurrent data structure using only concurrency primitives.
 
 ## Assignment
 
@@ -9,9 +9,9 @@ The basic assignment requirements were as follows:
 - Must correctly execute map operations read from a file
 - Must be thread safe
 - Multi-threaded output must be the same as single-threaded output
-- Performance must increase roughly proportional to threads used (up to the number of cores)
-- Hash map must be able to hold up to 2^22 items
-- Hash map does not have to support rehashing
+- Performance must increase roughly proportional to the number of threads used (up to the number of cores)
+- The hash map must be able to hold up to 2^22 items
+- The hash map does not have to support rehashing
 - Must write tests
 
 ## Approach
@@ -51,7 +51,7 @@ This shows that mapper is ~1.3 times faster with two and three cores, however it
 
 ## Compiling & Running
 
-To compile create and enter a build directory:
+To compile, create and enter a build directory:
 
     mkdir build && cd build
 
